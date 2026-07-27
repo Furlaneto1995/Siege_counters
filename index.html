@@ -9,9 +9,9 @@
 <meta name="description" content="Banco de counters para o Cerco de Guilda de Summoners War.">
 <meta name="theme-color" content="#3a2718">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Siege Counters">
@@ -52,9 +52,18 @@ h1,h2,h3{margin:0}
   position:sticky;top:0;z-index:40;
 }
 .brand{display:flex;align-items:center;gap:13px}
-.brand-icon{width:46px;height:34px;flex:none;
+.brand-icon{
+  position:relative;width:46px;height:34px;flex:none;padding:0;border:0;
   background:var(--emblem) center/contain no-repeat;
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,.85))}
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.85));
+  cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.brand-icon i{
+  position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+  width:0;height:3px;border-radius:2px;background:var(--gold);
+  box-shadow:0 0 6px rgba(242,201,105,.8);transition:width .1s linear;
+}
+.brand-icon.holding i{width:46px;transition:width 2s linear}
 .brand h1{
   font-size:23px;font-weight:900;letter-spacing:.5px;
   background:linear-gradient(180deg,#ffeaa7,#e0a534);
@@ -389,9 +398,29 @@ h1,h2,h3{margin:0}
 @media (max-width:860px){
   .matchup{grid-template-columns:1fr;gap:11px}
   .vs{justify-self:center;padding:3px 0}
-  .card{grid-template-columns:1fr;gap:11px}
-  .card-vs{justify-self:start}
-  .card-meta{align-items:flex-start;flex-direction:row;justify-content:space-between;width:100%}
+
+  /* counters salvos: defesa e ataque lado a lado, como no desktop */
+  .card{grid-template-columns:1fr auto 1fr;gap:8px;padding:11px}
+  .card-vs{
+    font-size:0;padding:5px 6px;align-self:center;
+    background:none;border:0;
+  }
+  .card-vs::before{content:"⚔";font-size:15px;color:var(--gold2)}
+  .card-meta{
+    grid-column:1/-1;flex-direction:row;align-items:center;
+    justify-content:space-between;width:100%;min-width:0;
+    padding-top:8px;border-top:1px dashed rgba(120,88,50,.3);
+  }
+  .card-team{gap:5px}
+  .mini{width:46px;height:46px}
+  .mini-label{font-size:7.5px}
+  .card-side small{font-size:9.5px}
+}
+
+@media (max-width:420px){
+  .mini{width:40px;height:40px}
+  .mini-label{font-size:7px}
+  .card{gap:5px;padding:9px}
 }
 @media (max-width:560px){
   .topbar{padding:12px 15px}
@@ -427,22 +456,43 @@ h1,h2,h3{margin:0}
 .match-part{color:#ffd08a;border-color:#9c7430;background:rgba(150,110,40,.25)}
 .card-tags{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 
+/* ===== modal sincronizar ===== */
+.modal-sync{width:min(480px,100%)}
+.modal-sync .modal-body{display:flex;flex-direction:column;gap:13px}
+.sync-hint{margin:0;font-size:12px;color:#9c8055;line-height:1.5}
+.sync-status{
+  padding:9px 12px;border-radius:5px;font-size:12.5px;
+  background:rgba(0,0,0,.3);border:1px solid rgba(120,88,50,.4);color:#bda17a;
+}
+.sync-status.ok{color:#a8f09a;border-color:#3f7d33;background:rgba(60,120,45,.2)}
+.sync-status.err{color:#f0a5a5;border-color:#9c4040;background:rgba(140,50,45,.2)}
+.sync-status.busy{color:#ffdf9d;border-color:#8a6a25;background:rgba(140,105,35,.2)}
+.sync-actions{display:flex;gap:9px;flex-wrap:wrap}
+.sync-actions .btn{flex:1;min-width:150px;justify-content:center}
+.sync-adv{border-top:1px solid rgba(120,88,50,.35);padding-top:11px}
+.sync-adv summary{
+  font-size:12.5px;color:#a98d63;cursor:pointer;padding:3px 0;
+  list-style:none;user-select:none;
+}
+.sync-adv summary::-webkit-details-marker{display:none}
+.sync-adv summary::before{content:"▸ ";color:var(--gold2)}
+.sync-adv[open] summary::before{content:"▾ "}
+.sync-adv .sync-actions{margin-top:9px}
+
 </style>
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <span class="brand-icon" role="img" aria-label="Brasão de Cerco"></span>
+    <button class="brand-icon" id="brandBtn" type="button"
+      aria-label="Segure 2 segundos para sincronizar" title="Segure 2s para sincronizar"><i></i></button>
     <div>
       <h1>Siege Counters</h1>
       <p>Banco de counters para Cerco de Guilda</p>
     </div>
   </div>
   <div class="topbar-actions">
-    <button class="btn btn-ghost" id="btnExport" type="button">⬇ Exportar</button>
-    <button class="btn btn-ghost" id="btnImport" type="button">⬆ Importar</button>
-    <input type="file" id="fileImport" accept="application/json" hidden>
     <button class="btn btn-ghost" id="btnInstall" type="button" hidden title="Instalar como aplicativo">⤓ Instalar</button>
     <button class="btn btn-add" id="btnNew" type="button" title="Registrar novo counter">
       <span class="plus">＋</span><span class="add-label">Novo counter</span>
@@ -576,6 +626,43 @@ h1,h2,h3{margin:0}
   </div>
 </div>
 
+<!-- ============ MODAL: SINCRONIZAR (long-press no brasão) ============ -->
+<div class="modal-backdrop" id="syncModal" hidden>
+  <div class="modal modal-sync">
+    <div class="modal-head">
+      <h3>☁️ Sincronizar counters</h3>
+      <button class="modal-close" id="syncClose" type="button">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <label class="field">
+        <span>Código da guilda</span>
+        <input type="text" id="inpRoom" placeholder="ex.: minha-guilda" autocomplete="off" spellcheck="false">
+      </label>
+      <p class="sync-hint">
+        Quem usar o mesmo código compartilha a mesma lista.
+        Escolha algo difícil de adivinhar — funciona como senha.
+      </p>
+
+      <div class="sync-status" id="syncStatus">Configure o Firebase para ativar a nuvem.</div>
+
+      <div class="sync-actions">
+        <button class="btn btn-gold" id="btnCloudSave" type="button">⬆ Salvar na nuvem</button>
+        <button class="btn btn-ghost" id="btnCloudLoad" type="button">⬇ Carregar da nuvem</button>
+      </div>
+
+      <details class="sync-adv">
+        <summary>Backup em arquivo</summary>
+        <div class="sync-actions">
+          <button class="btn btn-ghost btn-sm" id="btnExport" type="button">⬇ Exportar JSON</button>
+          <button class="btn btn-ghost btn-sm" id="btnImport" type="button">⬆ Importar JSON</button>
+          <input type="file" id="fileImport" accept="application/json" hidden>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -619,6 +706,7 @@ function load(){
 }
 function persist(){
   localStorage.setItem(STORE, JSON.stringify(entries));
+  if (typeof cloudAuto === 'function') cloudAuto();   // envia para a nuvem, se ativa
 }
 
 /* ---------- toast ---------- */
@@ -859,6 +947,155 @@ function renderList(){
   for (const e of shown) host.appendChild(cardEl(e));
 }
 
+/* ================= NUVEM (Firebase Realtime Database) =================
+   Usa a API REST — sem SDK, sem build. Basta preencher FIREBASE_URL abaixo.
+   Veja o passo a passo no README (seção "Sincronizar com Firebase").      */
+const FIREBASE_URL = '';   // ex.: 'https://meu-projeto-default-rtdb.firebaseio.com'
+
+const ROOM_KEY = 'sw_siege_room';
+const cloudOn  = () => /^https:\/\/.+/.test(FIREBASE_URL);
+
+function roomName(){
+  const campo = $('#inpRoom');
+  const digitado = campo ? campo.value.trim() : '';
+  return digitado || (localStorage.getItem(ROOM_KEY) || '').trim();
+}
+function roomPath(){
+  // sanitiza: o Firebase proíbe . $ # [ ] / no caminho
+  return roomName().toLowerCase().replace(/[.$#\[\]\/\s]+/g, '-');
+}
+
+function syncMsg(txt, cls){
+  const el = $('#syncStatus');
+  el.textContent = txt;
+  el.className = 'sync-status' + (cls ? ' ' + cls : '');
+}
+
+function syncRefresh(){
+  if (!cloudOn()){
+    syncMsg('Nuvem não configurada — preencha FIREBASE_URL no código. O backup em arquivo abaixo funciona normalmente.');
+    $('#btnCloudSave').disabled = true;
+    $('#btnCloudLoad').disabled = true;
+    return;
+  }
+  const r = roomName();
+  $('#btnCloudSave').disabled = !r;
+  $('#btnCloudLoad').disabled = !r;
+  syncMsg(r ? `Guilda "${r}" — ${entries.length} counter(s) neste aparelho.`
+            : 'Digite um código de guilda para ativar.');
+}
+
+async function cloudSave(){
+  if (!roomPath()) return toast('Digite um código de guilda');
+  localStorage.setItem(ROOM_KEY, roomName());
+  syncMsg('Enviando...', 'busy');
+  try {
+    const res = await fetch(`${FIREBASE_URL}/rooms/${roomPath()}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updated: Date.now(), entries }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    syncMsg(`✔ ${entries.length} counter(s) salvos na nuvem.`, 'ok');
+    toast('✔ Salvo na nuvem');
+  } catch (err) {
+    syncMsg('✕ Falha ao salvar: ' + err.message, 'err');
+    toast('✕ Erro ao salvar');
+  }
+}
+
+async function cloudLoad(){
+  if (!roomPath()) return toast('Digite um código de guilda');
+  localStorage.setItem(ROOM_KEY, roomName());
+  syncMsg('Baixando...', 'busy');
+  try {
+    const res = await fetch(`${FIREBASE_URL}/rooms/${roomPath()}.json`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const remotos = (data && data.entries) || [];
+    if (!remotos.length){
+      syncMsg('Nada salvo nessa guilda ainda.', 'err');
+      return toast('Nuvem vazia');
+    }
+    // mescla por id: mantém o que só existe aqui, adiciona o que só existe lá
+    const aqui = new Map(entries.map(e => [e.id, e]));
+    let novos = 0;
+    for (const e of remotos){
+      if (!aqui.has(e.id)){ aqui.set(e.id, e); novos++; }
+    }
+    entries = [...aqui.values()].sort((a, b) => b.id - a.id);
+    persist();
+    renderList();
+    renderQuery();
+    syncMsg(`✔ ${novos} novo(s) · ${entries.length} no total.`, 'ok');
+    toast(`✔ ${novos} counter(s) carregado(s)`);
+  } catch (err) {
+    syncMsg('✕ Falha ao carregar: ' + err.message, 'err');
+    toast('✕ Erro ao carregar');
+  }
+}
+
+// salva na nuvem em segundo plano após cada alteração (se configurado)
+let autoTimer;
+function cloudAuto(){
+  if (!cloudOn() || !roomPath()) return;
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    fetch(`${FIREBASE_URL}/rooms/${roomPath()}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updated: Date.now(), entries }),
+    }).catch(() => {});
+  }, 1200);
+}
+
+/* ---------- modal de sincronização (long-press no brasão) ---------- */
+function openSync(){
+  $('#inpRoom').value = roomName();
+  syncRefresh();
+  $('#syncModal').hidden = false;
+}
+function closeSync(){ $('#syncModal').hidden = true; }
+
+(function longPress(){
+  const btn = $('#brandBtn');
+  let timer = null, disparou = false;
+
+  const start = ev => {
+    if (ev.type === 'mousedown' && ev.button !== 0) return;
+    disparou = false;
+    btn.classList.add('holding');
+    timer = setTimeout(() => {
+      disparou = true;
+      btn.classList.remove('holding');
+      if (navigator.vibrate) navigator.vibrate(40);
+      openSync();
+    }, 2000);
+  };
+  const cancel = () => {
+    clearTimeout(timer);
+    btn.classList.remove('holding');
+  };
+
+  btn.addEventListener('mousedown', start);
+  btn.addEventListener('touchstart', start, { passive: true });
+  ['mouseup','mouseleave','touchend','touchcancel','touchmove'].forEach(ev =>
+    btn.addEventListener(ev, cancel));
+  // impede que o toque longo vire clique/menu de contexto
+  btn.addEventListener('click', e => { if (disparou) e.preventDefault(); });
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+})();
+
+$('#syncClose').addEventListener('click', closeSync);
+$('#syncModal').addEventListener('click', e => { if (e.target.id === 'syncModal') closeSync(); });
+['input','change'].forEach(ev =>
+  $('#inpRoom').addEventListener(ev, e => {
+    localStorage.setItem(ROOM_KEY, e.target.value.trim());
+    syncRefresh();
+  }));
+$('#btnCloudSave').addEventListener('click', cloudSave);
+$('#btnCloudLoad').addEventListener('click', cloudLoad);
+
 /* ---------- import / export ---------- */
 function exportJSON(){
   if (!entries.length) return toast('Nada para exportar');
@@ -883,6 +1120,7 @@ function importJSON(file){
       persist();
       renderList();
       renderQuery();
+      syncRefresh();
       toast(`✔ ${add.length} counter(s) importado(s)`);
     } catch {
       toast('✕ Arquivo inválido');
@@ -918,6 +1156,12 @@ function slotEl(id, onPick, onClear){
   return el;
 }
 
+function setBuscaAtiva(ativa){
+  // durante a busca, a lista completa some para não competir com o resultado
+  const painel = $('#list').closest('.panel');
+  painel.hidden = ativa;
+}
+
 function renderQuery(){
   const host = $('#qSlots');
   host.innerHTML = '';
@@ -932,6 +1176,7 @@ function renderQuery(){
     ? `${picked.length} monstro${picked.length > 1 ? 's' : ''} na defesa`
     : 'Escolha até 3 monstros da defesa inimiga';
 
+  setBuscaAtiva(picked.length > 0);
   renderQueryResults(picked);
 }
 
@@ -1025,6 +1270,7 @@ $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeP
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (picking) closePicker();
+  else if (!$('#syncModal').hidden) closeSync();
   else if (!$('#regModal').hidden) closeReg();
 });
 
@@ -1111,5 +1357,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21f4fe66a0700d9',t:'MTc4NTE5Mzc2OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21f65850c53b707',t:'MTc4NTE5NDY1NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
