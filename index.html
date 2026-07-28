@@ -205,6 +205,18 @@ h1,h2,h3{margin:0}
   background:#150e09;border:1px solid var(--line);color:var(--cream);outline:none;
 }
 .filters input:focus{border-color:var(--gold2)}
+/* cabeçalho fixo DEFESA | ATAQUE — mesma grade do card */
+.list-head{
+  position:sticky;top:var(--topbar-h,72px);z-index:20;
+  display:grid;grid-template-columns:1fr 34px 1fr;gap:14px;align-items:center;
+  padding:9px 13px;margin-bottom:10px;border-radius:6px;
+  background:linear-gradient(180deg,#3a2718,#241811);
+  border:1px solid var(--line2);
+  box-shadow:0 4px 14px rgba(0,0,0,.55);
+  font-size:11.5px;font-weight:900;letter-spacing:.6px;
+}
+.list-head .lh-def{grid-column:1;color:#8dc2f0}
+.list-head .lh-atk{grid-column:3;color:#f39a72}
 .list{display:flex;flex-direction:column;gap:11px}
 .card{
   display:grid;grid-template-columns:1fr auto 1fr auto;gap:14px;align-items:center;
@@ -231,11 +243,11 @@ h1,h2,h3{margin:0}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .card-vs{
-  font-size:12px;font-weight:900;color:var(--gold2);
-  padding:5px 9px;border-radius:4px;background:rgba(0,0,0,.4);
-  border:1px solid rgba(120,88,50,.5);white-space:nowrap;
+  width:34px;display:grid;place-items:center;align-self:center;
+  font-size:15px;font-weight:900;color:var(--gold2);white-space:nowrap;
 }
-.card-side{display:flex;flex-direction:column;gap:5px}
+.card-vs::before{content:"⚔"}
+.card-side{display:flex;flex-direction:column;gap:5px;min-width:0}
 .card-side small{font-size:10.5px;font-weight:800;letter-spacing:.4px}
 .small-def{color:#8dc2f0}
 .small-atk{color:#f39a72}
@@ -400,12 +412,10 @@ h1,h2,h3{margin:0}
   .vs{justify-self:center;padding:3px 0}
 
   /* counters salvos: defesa e ataque lado a lado, como no desktop */
-  .card{grid-template-columns:1fr auto 1fr;gap:8px;padding:11px}
-  .card-vs{
-    font-size:0;padding:5px 6px;align-self:center;
-    background:none;border:0;
-  }
-  .card-vs::before{content:"⚔";font-size:15px;color:var(--gold2)}
+  .card{grid-template-columns:1fr 22px 1fr;gap:8px;padding:11px}
+  .card-vs{width:22px;font-size:13px}
+  .list-head{gap:8px;padding:8px 11px;font-size:10px;
+    grid-template-columns:1fr 22px 1fr}
   .card-meta{
     grid-column:1/-1;flex-direction:row;align-items:center;
     justify-content:space-between;width:100%;min-width:0;
@@ -506,7 +516,7 @@ h1,h2,h3{margin:0}
   <section class="panel panel-search">
     <div class="panel-head">
       <h2>🔍 Buscar counter</h2>
-      <span class="hint">Monte a defesa que você enfrentou e veja o que vence</span>
+      
     </div>
 
     <div class="search-row">
@@ -527,6 +537,10 @@ h1,h2,h3{margin:0}
         <input type="search" id="inpFilter" placeholder="🔎 Filtrar por monstro...">
         <button class="btn btn-ghost btn-sm" id="btnClearAll" type="button">Limpar tudo</button>
       </div>
+    </div>
+    <div class="list-head" id="listHead">
+      <span class="lh-def">🛡️ DEFESA</span>
+      <span class="lh-atk">⚔️ ATAQUE</span>
     </div>
     <div id="list" class="list"></div>
     <div id="empty" class="empty">
@@ -695,7 +709,15 @@ const EL_PT = { water:'Água', fire:'Fogo', wind:'Vento', light:'Luz', dark:'Esc
 
 const MONS = (window.MONSTERS || []).slice()
   .sort((a, b) => b.nat - a.nat || a.name.localeCompare(b.name, 'pt-BR'));
-const BY_ID = new Map(MONS.map(m => [m.id, m]));
+
+// ids de 2ª despertar antigos -> id atual (o catálogo unificou as duas formas)
+const SA_ALIAS = {"10131":"10111","10132":"10112","10133":"10113","10134":"10114","10135":"10115","10331":"10311","10332":"10312","10333":"10313","10334":"10314","10335":"10315","10731":"10711","10732":"10712","10733":"10713","10734":"10714","10735":"10715","11031":"11011","11032":"11012","11033":"11013","11034":"11014","11035":"11015","14031":"14011","14032":"14012","14033":"14013","14034":"14014","14035":"14015","15031":"15011","15032":"15012","15033":"15013","15034":"15014","15035":"15015","11531":"11511","11532":"11512","11533":"11513","11534":"11514","11535":"11515","16031":"16011","16032":"16012","16033":"16013","16034":"16014","16035":"16015","12031":"12011","12032":"12012","12033":"12013","12034":"12014","12035":"12015","15231":"15211","15232":"15212","15233":"15213","15234":"15214","15235":"15215","15931":"15911","15932":"15912","15933":"15913","15934":"15914","15935":"15915","16531":"16511","16532":"16512","16533":"16513","16534":"16514","16535":"16515","20831":"20811","20832":"20812","20833":"20813","20834":"20814","20835":"20815","12131":"12111","12132":"12112","12133":"12113","12134":"12114","12135":"12115","10631":"10611","10632":"10612","10633":"10613","10634":"10614","10635":"10615","11731":"11711","11732":"11712","11733":"11713","11734":"11714","11735":"11715"};
+
+const _BY_ID = new Map(MONS.map(m => [m.id, m]));
+const BY_ID = {
+  get: id => _BY_ID.get(id) || _BY_ID.get(SA_ALIAS[id]),
+  has: id => _BY_ID.has(id) || _BY_ID.has(SA_ALIAS[id]),
+};
 
 const iconUrl = m => CDN + m.icon;
 
@@ -717,8 +739,14 @@ let picking = null;          // {side, index}
 let elFilter = 'all';
 let natFilter = 'all';   // filtro de estrelas naturais
 
+// declaradas com `function` para poderem ser usadas por load(), que roda antes
+function fixId(id){ return SA_ALIAS[id] || id; }
+function fixEntry(e){
+  return { ...e, def: (e.def || []).map(fixId), atk: (e.atk || []).map(fixId) };
+}
+
 function load(){
-  try { return JSON.parse(localStorage.getItem(STORE)) || []; }
+  try { return (JSON.parse(localStorage.getItem(STORE)) || []).map(fixEntry); }
   catch { return []; }
 }
 function persist(){
@@ -908,13 +936,11 @@ function cardEl(e, opts){
   card.className = 'card';
   card.innerHTML = `
     <div class="card-side">
-      <small class="small-def">🛡️ DEFESA</small>
-      <div class="card-team">${e.def.map(miniHTML).join('')}</div>
+      <div class="card-team">${(e.def||[]).map(miniHTML).join('')}</div>
     </div>
-    <div class="card-vs">é counterado por</div>
+    <div class="card-vs" aria-hidden="true"></div>
     <div class="card-side">
-      <small class="small-atk">⚔️ ATAQUE</small>
-      <div class="card-team right">${e.atk.map(miniHTML).join('')}</div>
+      <div class="card-team right">${(e.atk||[]).map(miniHTML).join('')}</div>
     </div>
     <div class="card-meta">
       <div class="card-tags">
@@ -945,7 +971,7 @@ function renderList(){
   const q = norm($('#inpFilter').value.trim());
   const shown = entries.filter(e => {
     if (!q) return true;
-    return [...e.def, ...e.atk].some(id => {
+    return [...(e.def||[]), ...(e.atk||[])].some(id => {
       const m = BY_ID.get(id);
       return m && terms(m).some(t => t.includes(q));
     });
@@ -1034,7 +1060,7 @@ async function cloudLoad(){
     const res = await fetch(`${dbUrl()}/rooms/${roomPath()}.json`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    const remotos = (data && data.entries) || [];
+    const remotos = ((data && data.entries) || []).map(fixEntry);
     if (!remotos.length){
       syncMsg('Nada salvo nessa guilda ainda.', 'err');
       return toast('Nuvem vazia');
@@ -1157,7 +1183,7 @@ function importJSON(file){
       const data = JSON.parse(r.result);
       if (!Array.isArray(data)) throw 0;
       const known = new Set(entries.map(e => e.id));
-      const add = data.filter(e => e && e.def && e.atk && !known.has(e.id));
+      const add = data.filter(e => e && e.def && e.atk && !known.has(e.id)).map(fixEntry);
       entries = [...add, ...entries];
       persist();
       renderList();
@@ -1230,8 +1256,9 @@ function renderQueryResults(picked){
   const want = new Set(picked);
   // pontua: quantos dos monstros buscados aparecem na defesa registrada
   const hits = entries.map(e => {
-    const found = picked.filter(id => e.def.includes(id)).length;
-    return { e, found, exact: found === e.def.length && found === picked.length };
+    const def = e.def || [];
+    const found = picked.filter(id => def.includes(id)).length;
+    return { e, found, exact: found === def.length && found === picked.length };
   }).filter(x => x.found > 0)
     .sort((a, b) => b.found - a.found || b.e.rate - a.e.rate);
 
@@ -1276,8 +1303,8 @@ function openEdit(id){
   editing = id;
   // preenche até 3 slots por lado
   draft = {
-    def: [0,1,2].map(i => e.def[i] || null),
-    atk: [0,1,2].map(i => e.atk[i] || null),
+    def: [0,1,2].map(i => (e.def||[])[i] || null),
+    atk: [0,1,2].map(i => (e.atk||[])[i] || null),
   };
   $('#inpRate').value = String(e.rate);
   $('#inpNote').value = e.note || '';
@@ -1388,6 +1415,15 @@ $('#btnQClear').addEventListener('click', () => {
   renderQuery();
 });
 
+// a topbar muda de altura conforme a largura; o cabeçalho fixo acompanha
+function ajustaTopo(){
+  const h = document.querySelector('.topbar').getBoundingClientRect().height;
+  document.documentElement.style.setProperty('--topbar-h', Math.round(h) + 'px');
+}
+addEventListener('resize', ajustaTopo);
+addEventListener('load', ajustaTopo);
+ajustaTopo();
+
 /* ---------- init ---------- */
 renderSlots();
 renderQuery();
@@ -1399,5 +1435,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fb0f6dcf2c4da',t:'MTc4NTE5Nzc0NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
