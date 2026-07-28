@@ -652,6 +652,23 @@ h1,h2,h3{margin:0}
       </div>
 
       <details class="sync-adv">
+        <summary>Configuração avançada</summary>
+        <label class="field" style="margin-top:9px">
+          <span>URL do Realtime Database</span>
+          <input type="url" id="inpDbUrl" spellcheck="false" autocomplete="off"
+                 placeholder="https://...firebaseio.com">
+        </label>
+        <p class="sync-hint" style="margin-top:7px">
+          Depende da região escolhida ao criar o banco. Se a sua for
+          <code>southamerica-east1</code>, a URL termina em
+          <code>.firebasedatabase.app</code>.
+        </p>
+        <div class="sync-actions">
+          <button class="btn btn-ghost btn-sm" id="btnTestDb" type="button">🔌 Testar conexão</button>
+        </div>
+      </details>
+
+      <details class="sync-adv">
         <summary>Backup em arquivo</summary>
         <div class="sync-actions">
           <button class="btn btn-ghost btn-sm" id="btnExport" type="button">⬇ Exportar JSON</button>
@@ -948,12 +965,21 @@ function renderList(){
 }
 
 /* ================= NUVEM (Firebase Realtime Database) =================
-   Usa a API REST — sem SDK, sem build. Basta preencher FIREBASE_URL abaixo.
+   Usa a API REST — sem SDK, sem build. Projeto: siege-counters-sw.
    Veja o passo a passo no README (seção "Sincronizar com Firebase").      */
-const FIREBASE_URL = '';   // ex.: 'https://meu-projeto-default-rtdb.firebaseio.com'
+// A URL depende da região escolhida ao criar o Realtime Database.
+// Pode ser trocada pelo próprio app, em "Configuração avançada".
+const FIREBASE_DEFAULT = 'https://siege-counters-sw-default-rtdb.firebaseio.com';
 
 const ROOM_KEY = 'sw_siege_room';
-const cloudOn  = () => /^https:\/\/.+/.test(FIREBASE_URL);
+const URL_KEY  = 'sw_siege_dburl';
+
+function dbUrl(){
+  const campo = $('#inpDbUrl');
+  const digitado = campo ? campo.value.trim() : '';
+  return (digitado || localStorage.getItem(URL_KEY) || FIREBASE_DEFAULT).replace(/\/+$/, '');
+}
+const cloudOn = () => /^https:\/\/.+/.test(dbUrl());
 
 function roomName(){
   const campo = $('#inpRoom');
@@ -972,15 +998,11 @@ function syncMsg(txt, cls){
 }
 
 function syncRefresh(){
-  if (!cloudOn()){
-    syncMsg('Nuvem não configurada — preencha FIREBASE_URL no código. O backup em arquivo abaixo funciona normalmente.');
-    $('#btnCloudSave').disabled = true;
-    $('#btnCloudLoad').disabled = true;
-    return;
-  }
   const r = roomName();
-  $('#btnCloudSave').disabled = !r;
-  $('#btnCloudLoad').disabled = !r;
+  const ok = cloudOn() && !!r;
+  $('#btnCloudSave').disabled = !ok;
+  $('#btnCloudLoad').disabled = !ok;
+  if (!cloudOn()) return syncMsg('URL do banco inválida — confira em "Configuração avançada".', 'err');
   syncMsg(r ? `Guilda "${r}" — ${entries.length} counter(s) neste aparelho.`
             : 'Digite um código de guilda para ativar.');
 }
@@ -990,7 +1012,7 @@ async function cloudSave(){
   localStorage.setItem(ROOM_KEY, roomName());
   syncMsg('Enviando...', 'busy');
   try {
-    const res = await fetch(`${FIREBASE_URL}/rooms/${roomPath()}.json`, {
+    const res = await fetch(`${dbUrl()}/rooms/${roomPath()}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ updated: Date.now(), entries }),
@@ -1009,7 +1031,7 @@ async function cloudLoad(){
   localStorage.setItem(ROOM_KEY, roomName());
   syncMsg('Baixando...', 'busy');
   try {
-    const res = await fetch(`${FIREBASE_URL}/rooms/${roomPath()}.json`);
+    const res = await fetch(`${dbUrl()}/rooms/${roomPath()}.json`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     const remotos = (data && data.entries) || [];
@@ -1041,7 +1063,7 @@ function cloudAuto(){
   if (!cloudOn() || !roomPath()) return;
   clearTimeout(autoTimer);
   autoTimer = setTimeout(() => {
-    fetch(`${FIREBASE_URL}/rooms/${roomPath()}.json`, {
+    fetch(`${dbUrl()}/rooms/${roomPath()}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ updated: Date.now(), entries }),
@@ -1051,7 +1073,8 @@ function cloudAuto(){
 
 /* ---------- modal de sincronização (long-press no brasão) ---------- */
 function openSync(){
-  $('#inpRoom').value = roomName();
+  $('#inpRoom').value  = roomName();
+  $('#inpDbUrl').value = localStorage.getItem(URL_KEY) || FIREBASE_DEFAULT;
   syncRefresh();
   $('#syncModal').hidden = false;
 }
@@ -1093,6 +1116,25 @@ $('#syncModal').addEventListener('click', e => { if (e.target.id === 'syncModal'
     localStorage.setItem(ROOM_KEY, e.target.value.trim());
     syncRefresh();
   }));
+['input','change'].forEach(ev =>
+  $('#inpDbUrl').addEventListener(ev, e => {
+    localStorage.setItem(URL_KEY, e.target.value.trim());
+    syncRefresh();
+  }));
+
+$('#btnTestDb').addEventListener('click', async () => {
+  syncMsg('Testando conexão...', 'busy');
+  try {
+    const res = await fetch(`${dbUrl()}/.json?shallow=true`);
+    if (res.status === 404) throw new Error('Banco não existe nessa URL — crie o Realtime Database ou confira a região.');
+    if (res.status === 401 || res.status === 403) throw new Error('Banco existe, mas as regras bloqueiam o acesso.');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    syncMsg('✔ Conectado ao banco.', 'ok');
+  } catch (err) {
+    syncMsg('✕ ' + err.message, 'err');
+  }
+});
+
 $('#btnCloudSave').addEventListener('click', cloudSave);
 $('#btnCloudLoad').addEventListener('click', cloudLoad);
 
@@ -1357,5 +1399,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21f65850c53b707',t:'MTc4NTE5NDY1NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21f7a91fa6cf214',t:'MTc4NTE5NTUxNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
