@@ -489,6 +489,28 @@ h1,h2,h3{margin:0}
 .sync-adv[open] summary::before{content:"▾ "}
 .sync-adv .sync-actions{margin-top:9px}
 
+
+/* ===== Otimizações de Fluidez & 60fps ===== */
+.mon, .card, .slot {
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 70px;
+}
+.modal-box, .topbar {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+button, select, input, .slot, .mon {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.grid {
+  contain: layout style paint;
+}
+img {
+  content-visibility: auto;
+}
+
 </style>
 </head>
 <body>
@@ -710,6 +732,12 @@ const EL_PT = { water:'Água', fire:'Fogo', wind:'Vento', light:'Luz', dark:'Esc
 const MONS = (window.MONSTERS || []).slice()
   .sort((a, b) => b.nat - a.nat || a.name.localeCompare(b.name, 'pt-BR'));
 
+// Prepara os termos de busca pré-normalizados para busca instantânea (60fps)
+MONS.forEach(m => {
+  m._normName = norm(m.name);
+  m._normTerms = [m.name, ...(m.alt || [])].map(norm);
+});
+
 // ids de 2ª despertar antigos -> id atual (o catálogo unificou as duas formas)
 const SA_ALIAS = {"10131":"10111","10132":"10112","10133":"10113","10134":"10114","10135":"10115","10331":"10311","10332":"10312","10333":"10313","10334":"10314","10335":"10315","10731":"10711","10732":"10712","10733":"10713","10734":"10714","10735":"10715","11031":"11011","11032":"11012","11033":"11013","11034":"11014","11035":"11015","14031":"14011","14032":"14012","14033":"14013","14034":"14014","14035":"14015","15031":"15011","15032":"15012","15033":"15013","15034":"15014","15035":"15015","11531":"11511","11532":"11512","11533":"11513","11534":"11514","11535":"11515","16031":"16011","16032":"16012","16033":"16013","16034":"16014","16035":"16015","12031":"12011","12032":"12012","12033":"12013","12034":"12014","12035":"12015","15231":"15211","15232":"15212","15233":"15213","15234":"15214","15235":"15215","15931":"15911","15932":"15912","15933":"15913","15934":"15914","15935":"15915","16531":"16511","16532":"16512","16533":"16513","16534":"16514","16535":"16515","20831":"20811","20832":"20812","20833":"20813","20834":"20814","20835":"20815","12131":"12111","12132":"12112","12133":"12113","12134":"12114","12135":"12115","10631":"10611","10632":"10612","10633":"10613","10634":"10614","10635":"10615","11731":"11711","11732":"11712","11733":"11713","11734":"11714","11735":"11715"};
 
@@ -811,7 +839,12 @@ function closePicker(){
   picking = null;
 }
 
-function renderGrid(){
+let gridRenderLimit = 90; // renderiza inicialmente os 90 primeiros para carregar instantaneamente
+
+function renderGrid(showMore = false){
+  if (!showMore) gridRenderLimit = 90;
+  else gridRenderLimit += 90;
+
   const q = norm($('#search').value.trim());
   const used = new Set((picking && picking.side === 'query'
     ? query : [...draft.def, ...draft.atk]).filter(Boolean));
@@ -819,12 +852,12 @@ function renderGrid(){
   let list = MONS.filter(m =>
     (elFilter === 'all' || m.el === elFilter) &&
     (natFilter === 'all' || m.nat === +natFilter) &&
-    (!q || terms(m).some(t => t.includes(q)))
+    (!q || m._normTerms.some(t => t.includes(q)))
   );
   // ranking: nome exato > nome começa com > apelido exato > apelido começa > resto
   if (q){
     list = list.map(m => {
-      const [name, ...alts] = terms(m);
+      const [name, ...alts] = m._normTerms;
       let r = 4;
       if (name === q) r = 0;
       else if (name.startsWith(q)) r = 1;
@@ -853,7 +886,10 @@ function renderGrid(){
   const agrupar = !q && natFilter === 'all';
   let ultimaNat = null;
 
-  for (const m of shown){
+  const totalLength = shown.length;
+  const visibleList = shown.slice(0, gridRenderLimit);
+
+  for (const m of visibleList){
     if (agrupar && m.nat !== ultimaNat){
       ultimaNat = m.nat;
       const h = document.createElement('div');
@@ -868,13 +904,13 @@ function renderGrid(){
       + ((m.alt || []).length ? `\n(${m.alt.join(' · ')})` : '');
     if (used.has(m.id)) b.style.opacity = .42;
     b.innerHTML =
-      `<img src="${iconUrl(m)}" alt="${esc(m.name)}" loading="lazy"` +
+      `<img src="${iconUrl(m)}" alt="${esc(m.name)}" width="48" height="48" loading="lazy"` +
       ` onerror="this.style.visibility='hidden'">` +
       `<span class="mon-el el-${m.el}"></span>` +
       (m.sa ? `<span class="mon-sa">2A</span>` : '') +
       (m.nat ? `<span class="mon-nat">${m.nat}★</span>` : '') +
       `<span class="mon-name">${esc(m.name)}</span>` +
-      (q && !norm(m.name).includes(q)
+      (q && !m._normName.includes(q)
         ? `<span class="mon-alt">${esc((m.alt || []).find(a => norm(a).includes(q)) || '')}</span>`
         : '');
     b.addEventListener('click', () => {
@@ -890,6 +926,17 @@ function renderGrid(){
     });
     frag.appendChild(b);
   }
+
+  if (totalLength > gridRenderLimit) {
+    const btnMore = document.createElement('button');
+    btnMore.type = 'button';
+    btnMore.className = 'btn btn-ghost btn-sm';
+    btnMore.style.cssText = 'grid-column: 1 / -1; margin: 12px auto; padding: 10px 20px; font-weight: bold;';
+    btnMore.textContent = `Mostrar mais (${totalLength - gridRenderLimit} restantes)`;
+    btnMore.addEventListener('click', () => renderGrid(true));
+    frag.appendChild(btnMore);
+  }
+
   grid.appendChild(frag);
   const filtros = [
     natFilter !== 'all' ? `${natFilter}★` : null,
@@ -984,7 +1031,7 @@ function renderList(){
     if (!q) return true;
     return [...(e.def||[]), ...(e.atk||[])].some(id => {
       const m = BY_ID.get(id);
-      return m && terms(m).some(t => t.includes(q));
+      return m && m._normTerms.some(t => t.includes(q));
     });
   });
 
@@ -1470,5 +1517,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2d25b4a7b951b29',t:'MTc4NzA3MTE4Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
