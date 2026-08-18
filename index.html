@@ -732,7 +732,17 @@ const $$ = s => [...document.querySelectorAll(s)];
 
 /* ---------- estado ---------- */
 let draft   = { def:[null,null,null], atk:[null,null,null] };
-let query   = [null, null, null];   // defesa pesquisada (busca reversa)
+const QUERY_KEY = 'sw_siege_query';
+function loadQuery(){
+  try {
+    const q = JSON.parse(localStorage.getItem(QUERY_KEY));
+    return Array.isArray(q) && q.length === 3 ? q : [null, null, null];
+  } catch { return [null, null, null]; }
+}
+function saveQuery(){
+  try { localStorage.setItem(QUERY_KEY, JSON.stringify(query)); } catch {}
+}
+let query = loadQuery();
 let editing = null;                 // id do counter em edição (null = novo)
 let entries = load();
 let picking = null;          // {side, index}
@@ -870,6 +880,7 @@ function renderGrid(){
     b.addEventListener('click', () => {
       if (picking.side === 'query'){
         query[picking.index] = m.id;
+        saveQuery();
         renderQuery();
       } else {
         draft[picking.side][picking.index] = m.id;
@@ -1052,10 +1063,13 @@ async function cloudSave(){
   }
 }
 
-async function cloudLoad(){
-  if (!roomPath()) return toast('Digite um código de guilda');
+async function cloudLoad(silent = false){
+  if (!roomPath()){
+    if (!silent) toast('Digite um código de guilda');
+    return;
+  }
   localStorage.setItem(ROOM_KEY, roomName());
-  syncMsg('Baixando...', 'busy');
+  if (!silent) syncMsg('Baixando...', 'busy');
   try {
     const res = await fetch(`${dbUrl()}/rooms/${roomPath()}.json`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1063,23 +1077,25 @@ async function cloudLoad(){
     const remotos = ((data && data.entries) || []).map(fixEntry);
     if (!remotos.length){
       syncMsg('Nada salvo nessa guilda ainda.', 'err');
-      return toast('Nuvem vazia');
+      if (!silent) toast('Nuvem vazia');
+      return;
     }
-    // mescla por id: mantém o que só existe aqui, adiciona o que só existe lá
+    // mescla por id: atualiza com os dados da nuvem e inclui novos
     const aqui = new Map(entries.map(e => [e.id, e]));
     let novos = 0;
     for (const e of remotos){
-      if (!aqui.has(e.id)){ aqui.set(e.id, e); novos++; }
+      if (!aqui.has(e.id)) novos++;
+      aqui.set(e.id, e);
     }
     entries = [...aqui.values()].sort((a, b) => b.id - a.id);
     persist();
     renderList();
     renderQuery();
     syncMsg(`✔ ${novos} novo(s) · ${entries.length} no total.`, 'ok');
-    toast(`✔ ${novos} counter(s) carregado(s)`);
+    if (!silent) toast(`✔ ${entries.length} counter(s) atualizado(s)`);
   } catch (err) {
     syncMsg('✕ Falha ao carregar: ' + err.message, 'err');
-    toast('✕ Erro ao carregar');
+    if (!silent) toast('✕ Erro ao carregar');
   }
 }
 
@@ -1236,7 +1252,7 @@ function renderQuery(){
   query.forEach((id, i) => host.appendChild(slotEl(
     id,
     () => openPicker('query', i),
-    () => { query[i] = null; renderQuery(); }
+    () => { query[i] = null; saveQuery(); renderQuery(); }
   )));
 
   const picked = query.filter(Boolean);
@@ -1412,6 +1428,7 @@ addEventListener('appinstalled', () => {
 
 $('#btnQClear').addEventListener('click', () => {
   query = [null, null, null];
+  saveQuery();
   renderQuery();
 });
 
@@ -1428,6 +1445,24 @@ ajustaTopo();
 renderSlots();
 renderQuery();
 renderList();
+
+// Carrega automaticamente da nuvem no início se houver código de guilda salvo
+if (cloudOn() && roomName()) {
+  cloudLoad(true);
+}
+
+// Sincroniza automaticamente ao retornar para o app
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && cloudOn() && roomName()) {
+    cloudLoad(true);
+  }
+});
+
+// Garante salvamento do estado em caso de encerramento do app/aba pelo SO
+window.addEventListener('pagehide', () => {
+  persist();
+  saveQuery();
+});
 
 // atalho do manifest: ?novo=1 abre o formulário direto
 if (new URLSearchParams(location.search).has('novo')) openReg();
