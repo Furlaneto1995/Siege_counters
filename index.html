@@ -4401,7 +4401,7 @@ window.addEventListener('pagehide', () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ updated: ts, entries }),
-        keepalive: true
+        keepalive: true 
       });
       fetch(`${dbUrl()}/rooms/_index/${roomPath()}.json`, {
         method: 'PUT',
