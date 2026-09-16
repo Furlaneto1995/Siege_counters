@@ -718,6 +718,65 @@ h1,h2,h3{margin:0}
 .admin-profile-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
 
 
+/* ===== modal escolher counters para copiar ===== */
+.modal-copy{width:min(780px,100%)}
+.copy-toolbar{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:8px;flex-wrap:wrap;padding-bottom:2px;
+}
+.copy-actions-left{display:flex;gap:7px;align-items:center}
+.copy-selection-count{
+  font-size:12.5px;font-weight:800;color:var(--gold);
+}
+.copy-filter-row{display:flex;width:100%}
+.copy-filter-row input{
+  width:100%;padding:7px 11px;font-size:13px;border-radius:5px;
+  background:#140e09;border:1px solid rgba(140,105,50,.4);color:#ffeab5;
+}
+.copy-filter-row input:focus{border-color:var(--gold);outline:none}
+.copy-items-list{
+  display:flex;flex-direction:column;gap:8px;max-height:50vh;overflow-y:auto;
+  padding-right:4px;
+}
+.copy-item-card{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:6px;
+  background:rgba(20,12,7,.8);border:1px solid rgba(140,105,50,.35);
+  cursor:pointer;transition:background .15s, border-color .15s;user-select:none;
+}
+.copy-item-card:hover{border-color:rgba(242,201,105,.6);background:rgba(35,22,12,.85)}
+.copy-item-card.selected{
+  border-color:var(--gold);background:rgba(242,201,105,.12);
+}
+.copy-item-check{
+  width:22px;height:22px;border-radius:4px;border:2px solid #8a7148;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:rgba(0,0,0,.4);color:transparent;font-size:14px;font-weight:900;
+  transition:all .12s;
+}
+.copy-item-card.selected .copy-item-check{
+  background:var(--gold);border-color:var(--gold);color:#241403;
+}
+.copy-item-content{
+  flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  flex-wrap:wrap;
+}
+.copy-item-matchup{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.copy-team-mini{display:flex;gap:4px;align-items:center}
+.copy-vs-badge{font-size:11px;font-weight:900;color:var(--gold2);letter-spacing:.5px}
+.copy-item-meta{
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.copy-already-tag{
+  font-size:10.5px;color:#85d685;background:rgba(50,120,50,.2);
+  border:1px solid rgba(60,160,60,.4);padding:2px 7px;border-radius:10px;font-weight:700;
+}
+.copy-note-text{
+  font-size:11px;color:#c8a878;font-style:italic;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px;
+}
+
 /* ===== Otimizações de Fluidez & 60fps ===== */
 .mon, .card, .slot {
   contain: layout style paint;
@@ -1016,6 +1075,49 @@ img {
       <div class="admin-profiles-list" id="adminProfilesList">
         <div style="padding:15px; text-align:center; color:#c8a878;">Carregando perfis da nuvem...</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: ESCOLHER COUNTERS PARA COPIAR ============ -->
+<div class="modal-backdrop" id="copyModal" hidden>
+  <div class="modal modal-copy">
+    <div class="modal-head">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:20px;">📋</span>
+        <div>
+          <h3 style="font-size:16px; margin:0;" id="copyModalTitle">Escolher counters para copiar</h3>
+          <span style="font-size:11.5px; color:#c8a878;" id="copyModalSubtitle">Selecione os counters desejados</span>
+        </div>
+      </div>
+      <button class="modal-close" id="copyModalClose" type="button">✕</button>
+    </div>
+
+    <div class="modal-body" style="gap:10px; max-height:75vh; display:flex; flex-direction:column;">
+      <!-- Barra de ferramentas: seleção em lote e contador -->
+      <div class="copy-toolbar">
+        <div class="copy-actions-left">
+          <button class="btn btn-ghost btn-sm" id="btnCopySelectAll" type="button">✓ Selecionar todos</button>
+          <button class="btn btn-ghost btn-sm" id="btnCopyDeselectAll" type="button">✕ Desmarcar todos</button>
+        </div>
+        <span class="copy-selection-count" id="copySelectionCount">0 selecionados</span>
+      </div>
+
+      <div class="copy-filter-row">
+        <input type="text" id="inpCopySearch" placeholder="🔍 Filtrar monstros nesta lista..." autocomplete="off" spellcheck="false">
+      </div>
+
+      <!-- Lista de counters com caixas de seleção -->
+      <div class="copy-items-list" id="copyItemsList">
+        <!-- Itens inseridos dinamicamente -->
+      </div>
+    </div>
+
+    <div class="modal-foot" style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <button class="btn btn-ghost btn-sm" id="btnCopyCancel" type="button">Cancelar</button>
+      <button class="btn btn-gold btn-sm" id="btnCopyConfirm" type="button" style="min-width:180px; font-weight:800;">
+        Copiar selecionados (<span id="btnCopyConfirmCount">0</span>)
+      </button>
     </div>
   </div>
 </div>
@@ -1662,7 +1764,7 @@ async function copyCountersFrom(srcRoom){
     return;
   }
   if (src.toLowerCase() === curRoom.toLowerCase()){
-    toast('O código de origem é igual ao código ativo');
+    toast('O código de origem é igual ao perfil ativo');
     return;
   }
 
@@ -1691,49 +1793,205 @@ async function copyCountersFrom(srcRoom){
       return;
     }
 
-    // 3. Adiciona sem substituir (mescla)
-    const existingSigs = new Set(
-      entries.map(e => `${(e.def||[]).slice().sort().join(',')}|${(e.atk||[]).slice().sort().join(',')}|${(e.note||'').trim()}`)
-    );
+    syncMsg(`Abrindo seleção de counters de "${src}"...`, 'ok');
+    openCopyModal(src, srcCounters);
+  } catch (err){
+    console.error('Erro ao buscar counters de origem:', err);
+    syncMsg('✕ Falha ao buscar counters: ' + err.message, 'err');
+    toast('✕ Erro ao buscar counters');
+  }
+}
 
-    let addedCount = 0;
-    srcCounters.forEach((item, idx) => {
-      const sig = `${(item.def||[]).slice().sort().join(',')}|${(item.atk||[]).slice().sort().join(',')}|${(item.note||'').trim()}`;
-      if (!existingSigs.has(sig)){
-        entries.push({
-          ...item,
-          id: Date.now() + idx + Math.floor(Math.random() * 1000)
-        });
-        existingSigs.add(sig);
-        addedCount++;
+/* ---------- tela e seleção interativa de counters para copiar ---------- */
+let copySource = '';
+let copyCandidateList = [];
+let copySelectedIndices = new Set();
+let copySearchQuery = '';
+
+function openCopyModal(srcName, candidateList){
+  copySource = srcName;
+  copyCandidateList = (candidateList || []).slice();
+  copySelectedIndices.clear();
+  copySearchQuery = '';
+
+  const inpSearch = $('#inpCopySearch');
+  if (inpSearch) inpSearch.value = '';
+
+  const titleEl = $('#copyModalTitle');
+  if (titleEl) titleEl.textContent = `Escolher counters de "${srcName}"`;
+
+  const subEl = $('#copyModalSubtitle');
+  if (subEl) subEl.textContent = `${copyCandidateList.length} counter(s) disponíveis · Marque os que deseja copiar`;
+
+  // Pré-seleciona os counters que ainda não existem no perfil atual
+  const existingSigs = new Set(
+    entries.map(e => `${(e.def||[]).slice().sort().join(',')}|${(e.atk||[]).slice().sort().join(',')}|${(e.note||'').trim()}`)
+  );
+
+  let newCount = 0;
+  copyCandidateList.forEach((item, idx) => {
+    const sig = `${(item.def||[]).slice().sort().join(',')}|${(item.atk||[]).slice().sort().join(',')}|${(item.note||'').trim()}`;
+    if (!existingSigs.has(sig)){
+      copySelectedIndices.add(idx);
+      newCount++;
+    }
+  });
+
+  // Se todos já existiam, marca todos para o usuário poder escolher se desejar
+  if (newCount === 0){
+    copyCandidateList.forEach((_, idx) => copySelectedIndices.add(idx));
+  }
+
+  renderCopyItemsList();
+
+  const modal = $('#copyModal');
+  if (modal) modal.hidden = false;
+}
+
+function closeCopyModal(){
+  const modal = $('#copyModal');
+  if (modal) modal.hidden = true;
+  copyCandidateList = [];
+  copySelectedIndices.clear();
+  copySource = '';
+}
+
+function updateCopyCounts(){
+  const count = copySelectedIndices.size;
+  const total = copyCandidateList.length;
+  const countEl = $('#copySelectionCount');
+  if (countEl) countEl.textContent = `${count} selecionado${count !== 1 ? 's' : ''} de ${total}`;
+  const btnCount = $('#btnCopyConfirmCount');
+  if (btnCount) btnCount.textContent = count;
+  const btnConfirm = $('#btnCopyConfirm');
+  if (btnConfirm) btnConfirm.disabled = (count === 0);
+}
+
+function renderCopyItemsList(){
+  const container = $('#copyItemsList');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const q = norm(copySearchQuery || '');
+  const existingSigs = new Set(
+    entries.map(e => `${(e.def||[]).slice().sort().join(',')}|${(e.atk||[]).slice().sort().join(',')}|${(e.note||'').trim()}`)
+  );
+
+  const filtered = copyCandidateList.map((item, idx) => ({ item, idx })).filter(({ item }) => {
+    if (!q) return true;
+    const authorMatch = item.author && norm(item.author).includes(q);
+    const noteMatch = item.note && norm(item.note).includes(q);
+    const monMatch = [...(item.def||[]), ...(item.atk||[])].some(id => {
+      const m = BY_ID.get(id);
+      return m && m._normTerms.some(t => t.includes(q));
+    });
+    return authorMatch || noteMatch || monMatch;
+  });
+
+  if (!filtered.length){
+    container.innerHTML = `<div style="text-align:center;padding:25px;color:#c8a878;">Nenhum counter encontrado com o filtro atual.</div>`;
+    updateCopyCounts();
+    return;
+  }
+
+  filtered.forEach(({ item, idx }) => {
+    const isSelected = copySelectedIndices.has(idx);
+    const sig = `${(item.def||[]).slice().sort().join(',')}|${(item.atk||[]).slice().sort().join(',')}|${(item.note||'').trim()}`;
+    const already = existingSigs.has(sig);
+
+    const card = document.createElement('div');
+    card.className = 'copy-item-card' + (isSelected ? ' selected' : '');
+    card.dataset.idx = idx;
+
+    card.innerHTML = `
+      <div class="copy-item-check" aria-hidden="true">${isSelected ? '✓' : ''}</div>
+      <div class="copy-item-content">
+        <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+          <div class="copy-item-matchup">
+            <div class="copy-team-mini">${(item.def||[]).map(miniHTML).join('')}</div>
+            <span class="copy-vs-badge">VS</span>
+            <div class="copy-team-mini">${(item.atk||[]).map(miniHTML).join('')}</div>
+          </div>
+          ${item.note ? `<div class="copy-note-text" title="${esc(item.note)}">💬 ${esc(item.note)}</div>` : ''}
+        </div>
+        <div class="copy-item-meta">
+          ${already ? '<span class="copy-already-tag">✔ Já possui</span>' : ''}
+          ${item.author ? `<span class="card-author" style="font-size:10.5px;">👤 ${esc(item.author)}</span>` : ''}
+          <span class="rate rate-${item.rate}" style="font-size:10.5px; padding:2px 6px;">${item.rate}% win</span>
+        </div>
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      if (copySelectedIndices.has(idx)){
+        copySelectedIndices.delete(idx);
+        card.classList.remove('selected');
+        card.querySelector('.copy-item-check').textContent = '';
+      } else {
+        copySelectedIndices.add(idx);
+        card.classList.add('selected');
+        card.querySelector('.copy-item-check').textContent = '✓';
       }
+      updateCopyCounts();
     });
 
-    if (addedCount === 0){
-      toast(`Todos os counters de "${src}" já estão na sua lista!`);
-      syncMsg(`Todos os ${srcCounters.length} counters de "${src}" já existiam em "${curRoom}".`, 'ok');
-      return;
-    }
+    container.appendChild(card);
+  });
 
-    persist(true);
-    if (cloudOn() && roomName()) cloudAuto(true);
-    renderList();
-    renderQuery();
-    syncRefresh();
-    renderRoomsSelect();
-    updateBrandRoomPill();
-    updateBrandNickPill();
+  updateCopyCounts();
+}
 
-    const inp = $('#inpCopyFrom');
-    if (inp) inp.value = '';
-
-    toast(`✔ ${addedCount} counter(s) adicionados de "${src}"!`);
-    syncMsg(`✔ ${addedCount} counter(s) de "${src}" somados a "${curRoom}" (total: ${entries.length}).`, 'ok');
-  } catch (err){
-    console.error('Erro ao copiar counters:', err);
-    syncMsg('✕ Falha ao copiar counters: ' + err.message, 'err');
-    toast('✕ Erro ao copiar counters');
+async function confirmCopySelection(){
+  if (copySelectedIndices.size === 0){
+    toast('Selecione pelo menos 1 counter para copiar');
+    return;
   }
+
+  const existingSigs = new Set(
+    entries.map(e => `${(e.def||[]).slice().sort().join(',')}|${(e.atk||[]).slice().sort().join(',')}|${(e.note||'').trim()}`)
+  );
+
+  let addedCount = 0;
+  const sortedIndices = Array.from(copySelectedIndices).sort((a,b) => a - b);
+  sortedIndices.forEach((idx, offset) => {
+    const item = copyCandidateList[idx];
+    if (!item) return;
+    const sig = `${(item.def||[]).slice().sort().join(',')}|${(item.atk||[]).slice().sort().join(',')}|${(item.note||'').trim()}`;
+    if (!existingSigs.has(sig)){
+      entries.push({
+        ...item,
+        id: Date.now() + offset + Math.floor(Math.random() * 1000)
+      });
+      existingSigs.add(sig);
+      addedCount++;
+    }
+  });
+
+  if (addedCount === 0){
+    toast('Todos os counters selecionados já existem no seu perfil!');
+    closeCopyModal();
+    return;
+  }
+
+  persist(true);
+  if (cloudOn() && roomName()) cloudAuto(true);
+  renderList();
+  renderQuery();
+  syncRefresh();
+  updateBrandRoomPill();
+  updateBrandNickPill();
+
+  const inp = $('#inpCopyFrom');
+  if (inp) inp.value = '';
+  const inpAdmin = $('#inpAdminCopyFrom');
+  if (inpAdmin) inpAdmin.value = '';
+
+  closeCopyModal();
+  closeSync();
+  if ($('#adminModal') && !$('#adminModal').hidden) closeAdminModal();
+
+  toast(`✔ ${addedCount} counter(s) copiado(s) de "${copySource}"!`);
+  syncMsg(`✔ ${addedCount} counter(s) de "${copySource}" adicionados ao seu perfil (total: ${entries.length}).`, 'ok');
 }
 
 async function switchRoom(newRoom, fetchCloud = true, migrateCurrent = false){
@@ -1996,8 +2254,6 @@ async function applyCopyFrom(){
     return;
   }
   await copyCountersFrom(val);
-  const inpCopy = $('#inpCopyFrom');
-  if (inpCopy) inpCopy.value = '';
 }
 const btnCopy = $('#btnCopyFrom');
 if (btnCopy) btnCopy.addEventListener('click', applyCopyFrom);
@@ -2008,6 +2264,73 @@ if (inpCopy){
       e.preventDefault();
       applyCopyFrom();
     }
+  });
+}
+
+/* ---------- listeners do modal de cópia seletiva de counters ---------- */
+const btnCopyConfirm = $('#btnCopyConfirm');
+if (btnCopyConfirm) btnCopyConfirm.addEventListener('click', confirmCopySelection);
+
+const btnCopyCancel = $('#btnCopyCancel');
+if (btnCopyCancel) btnCopyCancel.addEventListener('click', closeCopyModal);
+
+const btnCopyClose = $('#copyModalClose');
+if (btnCopyClose) btnCopyClose.addEventListener('click', closeCopyModal);
+
+const copyModal = $('#copyModal');
+if (copyModal){
+  copyModal.addEventListener('click', e => {
+    if (e.target.id === 'copyModal') closeCopyModal();
+  });
+}
+
+const btnCopySelectAll = $('#btnCopySelectAll');
+if (btnCopySelectAll){
+  btnCopySelectAll.addEventListener('click', () => {
+    const q = norm(copySearchQuery || '');
+    copyCandidateList.forEach((item, idx) => {
+      if (!q){
+        copySelectedIndices.add(idx);
+      } else {
+        const authorMatch = item.author && norm(item.author).includes(q);
+        const noteMatch = item.note && norm(item.note).includes(q);
+        const monMatch = [...(item.def||[]), ...(item.atk||[])].some(id => {
+          const m = BY_ID.get(id);
+          return m && m._normTerms.some(t => t.includes(q));
+        });
+        if (authorMatch || noteMatch || monMatch) copySelectedIndices.add(idx);
+      }
+    });
+    renderCopyItemsList();
+  });
+}
+
+const btnCopyDeselectAll = $('#btnCopyDeselectAll');
+if (btnCopyDeselectAll){
+  btnCopyDeselectAll.addEventListener('click', () => {
+    const q = norm(copySearchQuery || '');
+    if (!q){
+      copySelectedIndices.clear();
+    } else {
+      copyCandidateList.forEach((item, idx) => {
+        const authorMatch = item.author && norm(item.author).includes(q);
+        const noteMatch = item.note && norm(item.note).includes(q);
+        const monMatch = [...(item.def||[]), ...(item.atk||[])].some(id => {
+          const m = BY_ID.get(id);
+          return m && m._normTerms.some(t => t.includes(q));
+        });
+        if (authorMatch || noteMatch || monMatch) copySelectedIndices.delete(idx);
+      });
+    }
+    renderCopyItemsList();
+  });
+}
+
+const inpCopySearch = $('#inpCopySearch');
+if (inpCopySearch){
+  inpCopySearch.addEventListener('input', e => {
+    copySearchQuery = e.target.value;
+    renderCopyItemsList();
   });
 }
 
@@ -2456,6 +2779,7 @@ $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeP
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (picking) closePicker();
+  else if ($('#copyModal') && !$('#copyModal').hidden) closeCopyModal();
   else if ($('#adminModal') && !$('#adminModal').hidden) closeAdminModal();
   else if (!$('#syncModal').hidden) closeSync();
   else if (!$('#regModal').hidden) closeReg();
@@ -2679,5 +3003,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c1c37f5f88228d',t:'MTc4OTU4MTU1Mg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c1cf45a8fa228d',t:'MTc4OTU4MjAzNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
