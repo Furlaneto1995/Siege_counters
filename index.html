@@ -604,6 +604,12 @@ h1,h2,h3{margin:0}
 .match-full{color:#a8f09a;border-color:#3f7d33;background:rgba(60,120,45,.25)}
 .match-part{color:#ffd08a;border-color:#9c7430;background:rgba(150,110,40,.25)}
 .card-tags{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.card-author{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10.5px;color:#dec08a;background:rgba(0,0,0,.45);
+  padding:2px 7px;border-radius:10px;border:1px solid rgba(140,105,50,.35);
+  white-space:nowrap;
+}
 
 @media (max-width:768px){
   .topbar{padding:8px 12px 4px}
@@ -708,10 +714,14 @@ img {
       <div>
         <div class="brand-title-row">
           <h1>Siege Counters</h1>
-          <button class="room-pill" id="brandRoomPill" type="button" title="Código ativo. Clique para trocar de guilda ou sincronizar">
+          <button class="room-pill" id="brandRoomPill" type="button" title="Código ativo da guilda. Clique para gerenciar">
             <span>🏰</span>
-            <span id="brandRoomName">cd8</span>
+            <span id="brandRoomName">Sem código</span>
             <span class="room-pill-count" id="brandRoomCount">0</span>
+          </button>
+          <button class="room-pill" id="brandNickPill" type="button" title="Seu Nick de jogador. Clique para alterar">
+            <span>👤</span>
+            <span id="brandNickName">Jogador</span>
           </button>
         </div>
         <p>Banco de counters para Cerco de Guilda</p>
@@ -868,6 +878,27 @@ img {
   </div>
 </div>
 
+<!-- ============ MODAL: PRIMEIRO ACESSO (INFORMAR NICK) ============ -->
+<div class="modal-backdrop" id="firstNickModal" hidden>
+  <div class="modal modal-sync" style="max-width:390px;">
+    <div class="modal-head">
+      <h3>🛡️ Bem-vindo ao Siege Counters!</h3>
+    </div>
+    <div class="modal-body" style="gap:14px; padding-top:6px;">
+      <p style="margin:0; font-size:13px; color:#c8a878; line-height:1.5;">
+        Para começar, informe seu <b>Nick / Nome de jogador</b>:
+      </p>
+      <label class="field" style="margin:0;">
+        <span>Seu Nick</span>
+        <input type="text" id="inpFirstNick" placeholder="Ex: Shadow, Player1..." autocomplete="off" spellcheck="false">
+      </label>
+      <button class="btn btn-gold" id="btnConfirmFirstNick" type="button" style="width:100%; justify-content:center; padding:11px; font-size:14px;">
+        Entrar no app
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL: SINCRONIZAR (long-press no brasão) ============ -->
 <div class="modal-backdrop" id="syncModal" hidden>
   <div class="modal modal-sync">
@@ -877,6 +908,15 @@ img {
     </div>
 
     <div class="modal-body">
+      <!-- Identificação do Jogador (Nick) -->
+      <label class="field">
+        <span>Seu Nick / Nome de jogador</span>
+        <div class="room-input-group">
+          <input type="text" id="inpUserNickEdit" placeholder="Seu apelido no jogo" autocomplete="off" spellcheck="false">
+          <button class="btn btn-ghost btn-sm" id="btnSaveNickEdit" type="button">Salvar Nick</button>
+        </div>
+      </label>
+
       <!-- Seletor de códigos salvos no aparelho -->
       <label class="field">
         <span>Alternar entre códigos salvos no aparelho</span>
@@ -885,14 +925,23 @@ img {
 
       <!-- Código ativo -->
       <label class="field">
-        <span>Código da guilda</span>
+        <span>Código da guilda ativo</span>
         <div class="room-input-group">
-          <input type="text" id="inpRoom" placeholder="Ex: cd8" autocomplete="off" spellcheck="false">
+          <input type="text" id="inpRoom" placeholder="Ex: meu-cerco" autocomplete="off" spellcheck="false">
           <button class="btn btn-gold btn-sm" id="btnApplyRoom" type="button" title="Abrir código da guilda e carregar da nuvem">Abrir</button>
         </div>
       </label>
+
+      <!-- Copiar de outro código -->
+      <label class="field">
+        <span>Copiar de:</span>
+        <div class="room-input-group">
+          <input type="text" id="inpCopyFrom" placeholder="Código de origem (ex: cd8)" autocomplete="off" spellcheck="false">
+          <button class="btn btn-gold btn-sm" id="btnCopyFrom" type="button" title="Copiar counters deste código para o código atual">Copiar</button>
+        </div>
+      </label>
       <p class="sync-hint">
-        💡 Ao digitar um código e clicar em <b>Abrir</b>, os counters da guilda são carregados diretamente da nuvem. Novos times criados são salvos automaticamente na nuvem.
+        📋 <b>Copiar de:</b> adiciona os counters do código informado à sua lista atual, <b>sem substituir</b> os counters que você já tem.
       </p>
 
       <div class="sync-status" id="syncStatus">Conectado ao banco da guilda na nuvem.</div>
@@ -976,7 +1025,7 @@ function fixEntry(e){
 }
 
 /* ================= ARMAZENAMENTO E SALAS (NUVEM & APP) ================= */
-const DEFAULT_ROOM   = 'cd8';
+const USER_NICK_KEY  = 'sw_siege_user_nick';
 const ROOM_KEY       = 'sw_siege_room';
 const ROOMS_LIST_KEY = 'sw_siege_rooms_list';
 const URL_KEY        = 'sw_siege_dburl';
@@ -987,21 +1036,65 @@ function dbUrl(){
 }
 const cloudOn = () => true;
 
+function userNick(){
+  return (localStorage.getItem(USER_NICK_KEY) || '').trim();
+}
+
 function roomName(){
-  return (localStorage.getItem(ROOM_KEY) || DEFAULT_ROOM).trim();
+  const saved = (localStorage.getItem(ROOM_KEY) || '').trim();
+  if (saved) return saved;
+  return userNick() || '';
 }
 function roomPath(name = roomName()){
-  return (name || DEFAULT_ROOM).toLowerCase().replace(/[.$#\[\]\/\s]+/g, '-');
+  return (name || '').toLowerCase().replace(/[.$#\[\]\/\s]+/g, '-');
+}
+
+function updateBrandNickPill(){
+  const el = $('#brandNickName');
+  const nick = userNick();
+  if (el) el.textContent = nick || 'Definir nick';
+}
+
+async function saveUserNickToDb(nick){
+  const clean = (nick || '').trim();
+  if (!clean) return;
+  try {
+    const key = encodeURIComponent(clean.toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_'));
+    await fetch(`${dbUrl()}/rooms/_user_${key}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nick: clean,
+        lastActive: Date.now()
+      })
+    });
+  } catch (err) {
+    console.warn('Erro ao salvar nick no banco:', err);
+  }
+}
+
+async function registerUserInRoom(nick, room){
+  const cleanNick = (nick || '').trim();
+  const rPath = roomPath(room);
+  if (!cleanNick || !rPath) return;
+  try {
+    const userKey = encodeURIComponent(cleanNick.toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_'));
+    await fetch(`${dbUrl()}/rooms/${rPath}/users/${userKey}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nick: cleanNick, joinedAt: Date.now() })
+    });
+  } catch {}
 }
 
 function roomStoreKey(r = roomPath()){
-  return 'sw_siege_counters_room_' + (r || DEFAULT_ROOM);
+  return 'sw_siege_counters_room_' + (r || 'default');
 }
 function roomBackupKey(r = roomPath()){
-  return 'sw_siege_counters_bkp_' + (r || DEFAULT_ROOM);
+  return 'sw_siege_counters_bkp_' + (r || 'default');
 }
 function roomUpdatedKey(r = roomPath()){
-  return 'sw_siege_updated_room_' + (r || DEFAULT_ROOM);
+  return 'sw_siege_updated_room_' + (r || 'default');
 }
 
 function getLastUpdated(r = roomPath()){
@@ -1033,7 +1126,7 @@ function getKnownRooms(){
     if (Array.isArray(list) && list.length > 0) return list.filter(Boolean);
   } catch {}
   const current = roomName();
-  return current ? [current] : [DEFAULT_ROOM];
+  return current ? [current] : [];
 }
 
 function addKnownRoom(name){
@@ -1099,6 +1192,7 @@ function persist(syncCloud = true){
   setLastUpdated(Date.now());
   renderRoomsSelect();
   updateBrandRoomPill();
+  updateBrandNickPill();
   if (syncCloud && typeof cloudAuto === 'function') cloudAuto();
 }
 
@@ -1265,6 +1359,7 @@ function save(){
     toast('Escolha ao menos 1 monstro de cada lado');
     return;
   }
+  const nick = userNick();
   const data = {
     def, atk,
     rate: +$('#inpRate').value,
@@ -1273,9 +1368,9 @@ function save(){
 
   if (editing !== null){
     const i = entries.findIndex(x => x.id === editing);
-    if (i !== -1) entries[i] = { ...entries[i], ...data };
+    if (i !== -1) entries[i] = { ...entries[i], ...data, author: entries[i].author || nick || undefined };
   } else {
-    entries.unshift({ id: Date.now(), ...data });
+    entries.unshift({ id: Date.now(), ...data, author: nick || undefined });
   }
 
   const wasEdit = editing !== null;
@@ -1320,6 +1415,7 @@ function cardEl(e, opts){
     <div class="card-meta">
       <div class="card-tags">
         ${opts.tag || ''}
+        ${e.author ? `<span class="card-author" title="Criado por ${esc(e.author)}">👤 ${esc(e.author)}</span>` : ''}
         <span class="rate rate-${e.rate}">${e.rate}% win</span>
       </div>
       <div class="card-btns">
@@ -1348,10 +1444,13 @@ function renderList(){
   const q = norm(filterInput ? filterInput.value.trim() : '');
   const shown = entries.filter(e => {
     if (!q) return true;
-    return [...(e.def||[]), ...(e.atk||[])].some(id => {
+    const authorMatch = e.author && norm(e.author).includes(q);
+    const noteMatch = e.note && norm(e.note).includes(q);
+    const monMatch = [...(e.def||[]), ...(e.atk||[])].some(id => {
       const m = BY_ID.get(id);
       return m && m._normTerms.some(t => t.includes(q));
     });
+    return authorMatch || noteMatch || monMatch;
   });
 
   const countEl = $('#listCount');
@@ -1492,8 +1591,98 @@ async function cloudLoad(silent = false){
   }
 }
 
+async function copyCountersFrom(srcRoom){
+  const src = (srcRoom || '').trim();
+  if (!src){
+    toast('Digite o código de onde deseja copiar');
+    return;
+  }
+  const curRoom = roomName();
+  if (!curRoom){
+    toast('Defina ou abra um código ativo antes de copiar');
+    return;
+  }
+  if (src.toLowerCase() === curRoom.toLowerCase()){
+    toast('O código de origem é igual ao código ativo');
+    return;
+  }
+
+  syncMsg(`Buscando counters de "${src}" para copiar...`, 'busy');
+  try {
+    let srcCounters = [];
+    // 1. Tenta baixar da nuvem
+    try {
+      const res = await fetch(`${dbUrl()}/rooms/${roomPath(src)}.json`);
+      if (res.ok){
+        const data = await res.json();
+        if (data) srcCounters = extractEntries(data);
+      }
+    } catch (e){
+      console.warn('Erro ao buscar código de origem na nuvem:', e);
+    }
+
+    // 2. Se não encontrou na nuvem, busca no armazenamento local deste aparelho
+    if (!srcCounters.length){
+      srcCounters = loadForRoom(roomPath(src));
+    }
+
+    if (!srcCounters.length){
+      syncMsg(`✕ Nenhum counter encontrado no código "${src}".`, 'err');
+      toast(`Nenhum counter encontrado em "${src}"`);
+      return;
+    }
+
+    // 3. Adiciona sem substituir (mescla)
+    const existingSigs = new Set(
+      entries.map(e => `${(e.def||[]).slice().sort().join(',')}|${(e.atk||[]).slice().sort().join(',')}|${(e.note||'').trim()}`)
+    );
+
+    let addedCount = 0;
+    srcCounters.forEach((item, idx) => {
+      const sig = `${(item.def||[]).slice().sort().join(',')}|${(item.atk||[]).slice().sort().join(',')}|${(item.note||'').trim()}`;
+      if (!existingSigs.has(sig)){
+        entries.push({
+          ...item,
+          id: Date.now() + idx + Math.floor(Math.random() * 1000)
+        });
+        existingSigs.add(sig);
+        addedCount++;
+      }
+    });
+
+    if (addedCount === 0){
+      toast(`Todos os counters de "${src}" já estão na sua lista!`);
+      syncMsg(`Todos os ${srcCounters.length} counters de "${src}" já existiam em "${curRoom}".`, 'ok');
+      return;
+    }
+
+    persist(true);
+    if (cloudOn() && roomName()) cloudAuto(true);
+    renderList();
+    renderQuery();
+    syncRefresh();
+    renderRoomsSelect();
+    updateBrandRoomPill();
+    updateBrandNickPill();
+
+    const inp = $('#inpCopyFrom');
+    if (inp) inp.value = '';
+
+    toast(`✔ ${addedCount} counter(s) adicionados de "${src}"!`);
+    syncMsg(`✔ ${addedCount} counter(s) de "${src}" somados a "${curRoom}" (total: ${entries.length}).`, 'ok');
+  } catch (err){
+    console.error('Erro ao copiar counters:', err);
+    syncMsg('✕ Falha ao copiar counters: ' + err.message, 'err');
+    toast('✕ Erro ao copiar counters');
+  }
+}
+
 async function switchRoom(newRoom, fetchCloud = true){
-  const nextRoom = (newRoom || DEFAULT_ROOM).trim();
+  const nextRoom = (newRoom || userNick() || '').trim();
+  if (!nextRoom){
+    toast('Informe o código da guilda');
+    return;
+  }
   const prevRoom = roomName();
   const prevPath = roomPath(prevRoom);
   const nextPath = roomPath(nextRoom);
@@ -1512,6 +1701,7 @@ async function switchRoom(newRoom, fetchCloud = true){
   // 2. Define a nova sala ativa
   localStorage.setItem(ROOM_KEY, nextRoom);
   addKnownRoom(nextRoom);
+  registerUserInRoom(userNick(), nextRoom);
 
   // 3. Atualiza campo de input se existir
   const inp = $('#inpRoom');
@@ -1632,11 +1822,15 @@ function cloudAuto(immediate = false){
 function openSync(){
   renderRoomsSelect();
   $('#inpRoom').value = roomName();
+  const inpNick = $('#inpUserNickEdit');
+  if (inpNick) inpNick.value = userNick();
+  const inpCopy = $('#inpCopyFrom');
+  if (inpCopy) inpCopy.value = '';
   syncRefresh();
   $('#syncModal').hidden = false;
   setTimeout(() => {
     const inp = $('#inpRoom');
-    if (inp) inp.select();
+    if (inp && typeof inp.select === 'function') inp.select();
   }, 80);
 }
 function closeSync(){ $('#syncModal').hidden = true; }
@@ -1645,8 +1839,66 @@ $('#brandBtn').addEventListener('click', openSync);
 const pillBtn = $('#brandRoomPill');
 if (pillBtn) pillBtn.addEventListener('click', openSync);
 
+const nickPill = $('#brandNickPill');
+if (nickPill){
+  nickPill.addEventListener('click', () => {
+    openSync();
+    setTimeout(() => {
+      const inp = $('#inpUserNickEdit');
+      if (inp){
+        if (typeof inp.focus === 'function') inp.focus();
+        if (typeof inp.select === 'function') inp.select();
+      }
+    }, 120);
+  });
+}
+
 $('#syncClose').addEventListener('click', closeSync);
 $('#syncModal').addEventListener('click', e => { if (e.target.id === 'syncModal') closeSync(); });
+
+async function saveNickFromModal(){
+  const val = ($('#inpUserNickEdit').value || '').trim();
+  if (!val){
+    toast('Digite um nick válido');
+    return;
+  }
+  localStorage.setItem(USER_NICK_KEY, val);
+  saveUserNickToDb(val);
+  registerUserInRoom(val, roomName());
+  updateBrandNickPill();
+  toast('✔ Nick salvo: ' + val);
+}
+const btnSaveNick = $('#btnSaveNickEdit');
+if (btnSaveNick) btnSaveNick.addEventListener('click', saveNickFromModal);
+const inpNickEdit = $('#inpUserNickEdit');
+if (inpNickEdit){
+  inpNickEdit.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      saveNickFromModal();
+    }
+  });
+}
+
+async function applyCopyFrom(){
+  const val = ($('#inpCopyFrom').value || '').trim();
+  if (!val){
+    toast('Digite o código de onde deseja copiar');
+    return;
+  }
+  await copyCountersFrom(val);
+}
+const btnCopy = $('#btnCopyFrom');
+if (btnCopy) btnCopy.addEventListener('click', applyCopyFrom);
+const inpCopy = $('#inpCopyFrom');
+if (inpCopy){
+  inpCopy.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      applyCopyFrom();
+    }
+  });
+}
 
 const selRooms = $('#selRooms');
 if (selRooms){
@@ -1950,9 +2202,54 @@ if (btnForget){
     if (confirm(`Remover "${r}" da sua lista rápida de guildas? Os dados salvos na nuvem NÃO serão apagados.`)){
       removeKnownRoom(r);
       const remaining = getKnownRooms();
-      const next = remaining[0] || DEFAULT_ROOM;
+      const next = remaining[0] || userNick() || '';
       switchRoom(next, true);
       toast(`"${r}" removido da lista rápida`);
+    }
+  });
+}
+
+/* ---------- modal inicial de nick ---------- */
+const btnConfirmFirstNick = $('#btnConfirmFirstNick');
+const inpFirstNick = $('#inpFirstNick');
+
+async function handleFirstNickSubmit(){
+  const nick = (inpFirstNick ? inpFirstNick.value : '').trim();
+  if (!nick){
+    toast('Por favor, informe seu Nick');
+    return;
+  }
+  localStorage.setItem(USER_NICK_KEY, nick);
+  saveUserNickToDb(nick);
+
+  if (!localStorage.getItem(ROOM_KEY)){
+    localStorage.setItem(ROOM_KEY, nick);
+  }
+  addKnownRoom(roomName());
+  registerUserInRoom(nick, roomName());
+
+  const modal = $('#firstNickModal');
+  if (modal) modal.hidden = true;
+
+  updateBrandNickPill();
+  updateBrandRoomPill();
+  renderRoomsSelect();
+  syncRefresh();
+  toast(`✔ Bem-vindo, ${nick}!`);
+
+  if (roomName()){
+    cloudLoad(true);
+  }
+}
+
+if (btnConfirmFirstNick){
+  btnConfirmFirstNick.addEventListener('click', handleFirstNickSubmit);
+}
+if (inpFirstNick){
+  inpFirstNick.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      handleFirstNickSubmit();
     }
   });
 }
@@ -2002,10 +2299,25 @@ renderQuery();
 renderList();
 renderRoomsSelect();
 updateBrandRoomPill();
+updateBrandNickPill();
 
-// Carrega automaticamente da nuvem no início
-if (roomName()) {
-  cloudLoad(true);
+// Verifica se o usuário já tem um nick cadastrado
+if (!userNick()){
+  const firstModal = $('#firstNickModal');
+  if (firstModal){
+    firstModal.hidden = false;
+    setTimeout(() => {
+      const inp = $('#inpFirstNick');
+      if (inp && typeof inp.focus === 'function') inp.focus();
+    }, 150);
+  }
+} else {
+  // Se já tem nick, registra presença e carrega counters da nuvem
+  saveUserNickToDb(userNick());
+  if (roomName()){
+    registerUserInRoom(userNick(), roomName());
+    cloudLoad(true);
+  }
 }
 
 // Sincroniza automaticamente ao retornar para o app
@@ -2038,5 +2350,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c15b3838dfa438',t:'MTc4OTU3NzI4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c17f4e684ca5c6',t:'MTc4OTU3ODc1OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
