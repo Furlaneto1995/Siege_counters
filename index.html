@@ -57,13 +57,15 @@ h1,h2,h3{margin:0}
   background:var(--emblem) center/contain no-repeat;
   filter:drop-shadow(0 2px 3px rgba(0,0,0,.85));
   cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  transition:transform .12s, filter .12s;
 }
-.brand-icon i{
-  position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
-  width:0;height:3px;border-radius:2px;background:var(--gold);
-  box-shadow:0 0 6px rgba(242,201,105,.8);transition:width .1s linear;
+.brand-icon:hover{
+  filter:drop-shadow(0 2px 6px rgba(242,201,105,.55)) brightness(1.15);
+  transform:scale(1.06);
 }
-.brand-icon.holding i{width:46px;transition:width 2s linear}
+.brand-icon:active{
+  transform:scale(.95);
+}
 .brand h1{
   font-size:23px;font-weight:900;letter-spacing:.5px;
   background:linear-gradient(180deg,#ffeaa7,#e0a534);
@@ -669,7 +671,7 @@ img {
 <header class="topbar">
   <div class="brand">
     <button class="brand-icon" id="brandBtn" type="button"
-      aria-label="Segure 2 segundos para sincronizar" title="Segure 2s para sincronizar"><i></i></button>
+      aria-label="Sincronização e menu" title="Sincronização e menu"></button>
     <div>
       <h1>Siege Counters</h1>
       <p>Banco de counters para Cerco de Guilda</p>
@@ -872,10 +874,11 @@ img {
       </details>
 
       <details class="sync-adv">
-        <summary>Backup em arquivo</summary>
+        <summary>Backup e restauração</summary>
         <div class="sync-actions">
           <button class="btn btn-ghost btn-sm" id="btnExport" type="button">⬇ Exportar JSON</button>
           <button class="btn btn-ghost btn-sm" id="btnImport" type="button">⬆ Importar JSON</button>
+          <button class="btn btn-ghost btn-sm" id="btnRestoreBkp" type="button" title="Restaura o último backup salvo neste navegador">↺ Restaurar backup local</button>
           <input type="file" id="fileImport" accept="application/json" hidden>
         </div>
       </details>
@@ -963,6 +966,8 @@ function fixEntry(e){
 }
 
 const UPDATED_KEY = 'sw_siege_updated';
+const STORE_BACKUP = 'sw_siege_counters_backup';
+
 function getLastUpdated(){
   return Number(localStorage.getItem(UPDATED_KEY)) || 0;
 }
@@ -971,11 +976,19 @@ function setLastUpdated(ts){
 }
 
 function load(){
-  try { return (JSON.parse(localStorage.getItem(STORE)) || []).map(fixEntry); }
-  catch { return []; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE));
+    if (Array.isArray(raw) && raw.length > 0) return raw.map(fixEntry);
+    const bkp = JSON.parse(localStorage.getItem(STORE_BACKUP));
+    if (Array.isArray(bkp) && bkp.length > 0) return bkp.map(fixEntry);
+    return [];
+  } catch { return []; }
 }
 function persist(syncCloud = true){
   localStorage.setItem(STORE, JSON.stringify(entries));
+  if (entries.length > 0){
+    try { localStorage.setItem(STORE_BACKUP, JSON.stringify(entries)); } catch {}
+  }
   setLastUpdated(Date.now());
   if (syncCloud && typeof cloudAuto === 'function') cloudAuto();   // envia para a nuvem, se ativa
 }
@@ -1368,21 +1381,27 @@ async function cloudLoad(silent = false){
 
     if (!remotos.length){
       if (!silent){
-        syncMsg('Nenhum counter encontrado salvo nesta guilda.', 'err');
-        toast('Nenhum counter na nuvem');
+        syncMsg('Nenhum counter encontrado na nuvem para esta guilda.', 'err');
+        toast('Nuvem vazia — seus counters locais foram mantidos');
       }
       return;
     }
 
-    // Carregamento: a nuvem é a fonte da verdade, substitui a lista local
-    entries = remotos;
-    setLastUpdated(remoteUpdated || Date.now());
+    // Mescla inteligente: junta remotos e locais por ID para NUNCA perder nenhum time
+    const mapa = new Map();
+    // adiciona os locais primeiro
+    entries.forEach(e => { if (e && e.id) mapa.set(e.id, e); });
+    // adiciona/atualiza os da nuvem
+    remotos.forEach(e => { if (e && e.id) mapa.set(e.id, e); });
+    entries = [...mapa.values()];
+
+    setLastUpdated(Math.max(remoteUpdated, localUpdated, Date.now()));
     persist(false); // persiste sem re-disparar cloudAuto
     renderList();
     renderQuery();
     syncRefresh();
-    syncMsg(`✔ ${entries.length} counter(s) carregados da nuvem.`, 'ok');
-    if (!silent) toast(`✔ ${entries.length} counter(s) carregado(s)`);
+    syncMsg(`✔ ${entries.length} counter(s) sincronizados com a nuvem.`, 'ok');
+    if (!silent) toast(`✔ ${entries.length} counter(s) sincronizado(s)`);
   } catch (err) {
     syncMsg('✕ Falha ao carregar: ' + err.message, 'err');
     if (!silent) toast('✕ Erro ao carregar');
@@ -1406,7 +1425,7 @@ function cloudAuto(){
   }, 400);
 }
 
-/* ---------- modal de sincronização (long-press no brasão) ---------- */
+/* ---------- modal de sincronização (clique simples no brasão) ---------- */
 function openSync(){
   $('#inpRoom').value  = roomName();
   $('#inpDbUrl').value = localStorage.getItem(URL_KEY) || FIREBASE_DEFAULT;
@@ -1415,34 +1434,7 @@ function openSync(){
 }
 function closeSync(){ $('#syncModal').hidden = true; }
 
-(function longPress(){
-  const btn = $('#brandBtn');
-  let timer = null, disparou = false;
-
-  const start = ev => {
-    if (ev.type === 'mousedown' && ev.button !== 0) return;
-    disparou = false;
-    btn.classList.add('holding');
-    timer = setTimeout(() => {
-      disparou = true;
-      btn.classList.remove('holding');
-      if (navigator.vibrate) navigator.vibrate(40);
-      openSync();
-    }, 2000);
-  };
-  const cancel = () => {
-    clearTimeout(timer);
-    btn.classList.remove('holding');
-  };
-
-  btn.addEventListener('mousedown', start);
-  btn.addEventListener('touchstart', start, { passive: true });
-  ['mouseup','mouseleave','touchend','touchcancel','touchmove'].forEach(ev =>
-    btn.addEventListener(ev, cancel));
-  // impede que o toque longo vire clique/menu de contexto
-  btn.addEventListener('click', e => { if (disparou) e.preventDefault(); });
-  btn.addEventListener('contextmenu', e => e.preventDefault());
-})();
+$('#brandBtn').addEventListener('click', openSync);
 
 $('#syncClose').addEventListener('click', closeSync);
 $('#syncModal').addEventListener('click', e => { if (e.target.id === 'syncModal') closeSync(); });
@@ -1688,6 +1680,26 @@ $('#starFilters').addEventListener('click', e => {
 $('#inpFilter').addEventListener('input', renderList);
 $('#btnExport').addEventListener('click', exportJSON);
 $('#btnImport').addEventListener('click', () => $('#fileImport').click());
+const restoreBtn = $('#btnRestoreBkp');
+if (restoreBtn){
+  restoreBtn.addEventListener('click', () => {
+    try {
+      const bkp = JSON.parse(localStorage.getItem(STORE_BACKUP) || localStorage.getItem(STORE) || '[]');
+      if (Array.isArray(bkp) && bkp.length > 0){
+        entries = bkp.map(fixEntry);
+        persist(false);
+        renderList();
+        renderQuery();
+        syncRefresh();
+        toast(`✔ ${entries.length} counter(s) restaurados!`);
+      } else {
+        toast('Nenhum backup local encontrado neste navegador');
+      }
+    } catch {
+      toast('✕ Erro ao restaurar backup');
+    }
+  });
+}
 $('#fileImport').addEventListener('change', e => {
   if (e.target.files[0]) importJSON(e.target.files[0]);
   e.target.value = '';
@@ -1809,5 +1821,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2d267edcb451b29',t:'MTc4NzA3MTcwNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c06b7a4db9f1f2',t:'MTc4OTU2NzQ2MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2d267edcb451b29',t:'MTc4NzA3MTcwNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
