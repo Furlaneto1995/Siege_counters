@@ -308,6 +308,21 @@ h1,h2,h3{margin:0}
 .del{color:#a8674f}
 .del:hover{color:#ff9c7a;border-color:#7a3c2a;background:rgba(120,40,25,.25)}
 
+.btn-copy-guild, .btn-copy-personal, .btn-copy-target{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;color:var(--gold);
+  background:rgba(40,25,12,.65);border:1px solid rgba(180,135,60,.45);
+  padding:3px 8px;border-radius:6px;cursor:pointer;
+  transition:all .15s ease;line-height:1.2;white-space:nowrap;
+}
+.btn-copy-guild:hover, .btn-copy-personal:hover, .btn-copy-target:hover{
+  background:rgba(80,50,20,.85);color:#ffeaa8;border-color:var(--gold);
+  box-shadow:0 0 6px rgba(242,201,105,.25);
+}
+@media (max-width:540px){
+  .btn-copy-guild, .btn-copy-personal, .btn-copy-target{font-size:10px;padding:2px 6px}
+}
+
 .empty{text-align:center;padding:42px 20px;color:#8a7148}
 .empty-icon{font-size:42px;display:block;margin-bottom:9px;opacity:.55}
 .empty p{margin:0 0 5px;font-size:15px;font-weight:700}
@@ -785,6 +800,45 @@ h1,h2,h3{margin:0}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px;
 }
 
+/* ===== alternador de perfil no cabeçalho ===== */
+.profile-switcher{
+  display:inline-flex;align-items:center;background:rgba(0,0,0,.5);
+  border:1px solid rgba(140,105,50,.5);border-radius:20px;padding:2px;
+  gap:2px;box-shadow:inset 0 1px 3px rgba(0,0,0,.6);margin-left:4px;
+}
+.profile-switch-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:16px;border:1px solid transparent;
+  background:transparent;color:#bda17a;font-size:12px;font-weight:800;
+  cursor:pointer;transition:all .14s ease;
+  line-height:1;white-space:nowrap;user-select:none;
+}
+.profile-switch-btn:hover{color:#ffeab5;background:rgba(255,255,255,.05)}
+.profile-switch-btn.active{
+  background:linear-gradient(180deg,#5a3d1c,#342110);
+  color:var(--gold);border-color:var(--gold2);
+  box-shadow:0 1px 5px rgba(0,0,0,.5);
+}
+@media (max-width:540px){
+  .brand h1{font-size:18px}
+  .profile-switch-btn{padding:3px 8px;font-size:11px}
+}
+
+/* ===== modal notas de atualização ===== */
+.modal-notes{width:min(540px,100%)}
+.update-notes-list{
+  display:flex;flex-direction:column;gap:11px;
+}
+.update-note-item{
+  display:flex;gap:11px;align-items:flex-start;
+  padding:10px 12px;border-radius:6px;
+  background:rgba(20,12,7,.75);border:1px solid rgba(140,105,50,.35);
+}
+.update-note-icon{font-size:22px;line-height:1;flex-shrink:0}
+.update-note-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.update-note-title{font-size:13.5px;font-weight:900;color:var(--gold)}
+.update-note-desc{font-size:12px;color:#d5c2a3;line-height:1.45}
+
 /* ===== Otimizações de Fluidez & 60fps ===== */
 .mon, .card, .slot {
   contain: layout style paint;
@@ -805,7 +859,50 @@ button, select, input, .slot, .mon {
 img {
   content-visibility: auto;
 }
-
+.guild-unlocked-card {
+  background: rgba(20,12,7,.85);
+  border: 1px solid rgba(140,105,50,.5);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.5);
+}
+.guild-section-box {
+  background: rgba(20,12,7,.8);
+  border: 1px solid rgba(140,105,50,.45);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.5);
+}
+.guild-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(140,105,50,.25);
+}
+.guild-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(140,105,50,.4);
+  background: rgba(40,25,12,.6);
+  color: #c8a878;
+  cursor: pointer;
+  transition: all .14s ease;
+}
+.guild-badge-btn.active {
+  background: var(--gold);
+  color: #1a0f05;
+  border-color: #ffeab5;
+  font-weight: 900;
+}
 </style>
 </head>
 <body>
@@ -817,6 +914,16 @@ img {
         aria-label="Sincronização e menu" title="Sincronização e menu"></button>
       <div class="brand-title-row">
         <h1>Siege Counters</h1>
+        <div class="profile-switcher" id="profileSwitcher" title="Alternar entre perfil pessoal e CD8 da guilda">
+          <button class="profile-switch-btn active" id="btnSwitchPersonal" type="button" title="Seu perfil pessoal de counters">
+            <span>👤</span>
+            <span class="ps-label" id="labelSwitchPersonal">Pessoal</span>
+          </button>
+          <button class="profile-switch-btn" id="btnSwitchCD8" type="button" title="Perfil coletivo da guilda (todos adicionam)" style="display:none;">
+            <span>🏰</span>
+            <span class="ps-label" id="labelSwitchCD8">Guilda</span>
+          </button>
+        </div>
       </div>
     </div>
     <div class="topbar-actions">
@@ -1012,9 +1119,48 @@ img {
         </div>
       </label>
 
-      <div class="sync-status" id="syncStatus">Conectado ao banco de dados na nuvem.</div>
+      <!-- SEÇÃO GUILDA: ACESSAR OU CRIAR -->
+      <div class="guild-section-box">
+        <div class="guild-section-header">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:16px;">🏰</span>
+            <span style="font-size:13px; font-weight:800; color:var(--gold);">Guilda (Acesso Coletivo)</span>
+          </div>
+          <button class="btn btn-gold btn-sm" id="btnOpenCreateGuildModal" type="button" style="padding:4px 10px; font-size:11.5px; font-weight:800;" title="Criar um novo perfil de guilda com código de 4 números">
+            ＋ Criar guilda
+          </button>
+        </div>
 
-      <details class="sync-adv" open>
+        <!-- Estado quando a guilda NÃO está conectada -->
+        <div id="guildLockedBox">
+          <label class="field" style="margin:0;">
+            <span style="font-size:11.5px; color:#c8a878;">Inserir código da guilda (4 números):</span>
+            <div class="room-input-group">
+              <input type="text" id="inpGuildCode" placeholder="Digite o código da guilda" maxlength="4" autocomplete="off" spellcheck="false" inputmode="numeric">
+              <button class="btn btn-gold btn-sm" id="btnApplyGuildCode" type="button" title="Acessar perfil desta guilda">Acessar</button>
+            </div>
+          </label>
+          <span style="font-size:11px; color:#a89070; display:block; margin-top:4px;">
+            Insira o código fornecido pela liderança da sua guilda para liberar a opção ao lado do seu nome para ver e inserir ataques da guilda.
+          </span>
+        </div>
+
+        <!-- Estado quando a guilda ESTÁ conectada -->
+        <div id="guildUnlockedBox" style="display:none;" class="guild-unlocked-card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:22px;">🏰</span>
+              <div>
+                <div style="font-size:13.5px; font-weight:800; color:var(--gold);" id="guildConnectedName">Guilda Conectada</div>
+                <div style="font-size:11px; color:#85d685;">✔ Acesso liberado no topo ao lado do seu nome</div>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm btn-danger" id="btnRemoveGuildAccess" type="button" title="Desconectar desta guilda">Sair da guilda</button>
+          </div>
+        </div>
+      </div>
+
+      <details class="sync-adv" open style="margin-top:6px;">
         <summary>Backup e restauração</summary>
         <div style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
           <!-- Copiar de outro código -->
@@ -1034,13 +1180,92 @@ img {
           </div>
         </div>
       </details>
+    </div>
+  </div>
+</div>
 
-      <details class="sync-adv sync-danger">
-        <summary>Zona de perigo</summary>
-        <div class="sync-actions" style="margin-top:9px">
-          <button class="btn btn-ghost btn-sm btn-danger" id="btnClearAll" type="button">🗑 Limpar counters deste perfil</button>
+<!-- ============ MODAL: CRIAR GUILDA ============ -->
+<div class="modal-backdrop" id="createGuildModal" hidden>
+  <div class="modal modal-sync" style="max-width:440px;">
+    <div class="modal-head">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:22px;">🏰</span>
+        <h3 style="font-size:16px; margin:0;">Criar Nova Guilda</h3>
+      </div>
+      <button class="modal-close" id="createGuildClose" type="button">✕</button>
+    </div>
+
+    <div class="modal-body" style="gap:12px; padding-top:6px;">
+      <p style="margin:0; font-size:12.5px; color:#c8a878; line-height:1.5;">
+        Crie um perfil exclusivo na nuvem para a sua guilda com código de 4 números. Os membros da sua guilda poderão acessar esse perfil em específico digitando o código em <b>"Inserir código da guilda"</b>.
+      </p>
+
+      <label class="field" style="margin:0;">
+        <span>Nome da Guilda:</span>
+        <input type="text" id="inpModalCreateGuildName" placeholder="Ex: CD8, Elite, Guardiões..." autocomplete="off" spellcheck="false" maxlength="24">
+      </label>
+
+      <label class="field" style="margin:0;">
+        <span>Código de Acesso da Guilda (4 números):</span>
+        <div class="room-input-group">
+          <input type="text" id="inpModalCreateGuildCode" placeholder="Ex: 5566" maxlength="4" pattern="[0-9]{4}" autocomplete="off" spellcheck="false" inputmode="numeric">
+          <button class="btn btn-ghost btn-sm" id="btnModalGenGuildCode" type="button" title="Gerar código aleatório de 4 números">🎲 Gerar</button>
         </div>
-      </details>
+      </label>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px;">
+        <button class="btn btn-ghost btn-sm" id="btnCancelCreateGuild" type="button">Cancelar</button>
+        <button class="btn btn-gold btn-sm" id="btnConfirmCreateGuild" type="button" style="padding:8px 18px; font-weight:800;">
+          🏰 Criar e Conectar Guilda
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: COPIAR TIME PARA GUILDA OU COLEGA ============ -->
+<div class="modal-backdrop" id="copyToTargetModal" hidden>
+  <div class="modal modal-sync" style="max-width:440px;">
+    <div class="modal-head">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:22px;">📋</span>
+        <div>
+          <h3 style="font-size:16px; margin:0;">Copiar counter para...</h3>
+          <span style="font-size:11.5px; color:#c8a878;">Envie este time para a guilda ou para um colega</span>
+        </div>
+      </div>
+      <button class="modal-close" id="copyToTargetClose" type="button">✕</button>
+    </div>
+
+    <div class="modal-body" style="gap:12px; padding-top:6px;">
+      <!-- Pré-visualização do time -->
+      <div id="copyTargetPreview" style="background:rgba(20,12,7,.8); padding:8px 10px; border-radius:6px; border:1px solid rgba(140,105,50,.35);">
+        <!-- inserido via JS -->
+      </div>
+
+      <!-- OPÇÃO 1: GUILDA -->
+      <div class="guild-section-box" style="padding:10px;">
+        <span style="font-size:12px; font-weight:800; color:var(--gold);">🏰 Enviar para a Guilda:</span>
+        <div id="copyToGuildActionBox">
+          <!-- preenchido dinamicamente via JS -->
+        </div>
+      </div>
+
+      <!-- OPÇÃO 2: COLEGA -->
+      <div class="guild-section-box" style="padding:10px;">
+        <span style="font-size:12px; font-weight:800; color:var(--gold);">👤 Enviar para um Colega:</span>
+        <label class="field" style="margin:0;">
+          <span style="font-size:11px; color:#c8a878;">Código de 4 números do jogador:</span>
+          <div class="room-input-group">
+            <input type="text" id="inpCopyTargetUserCode" placeholder="Ex: 7834" maxlength="4" pattern="[0-9]{4}" autocomplete="off" spellcheck="false" inputmode="numeric">
+            <button class="btn btn-gold btn-sm" id="btnConfirmCopyTargetUser" type="button">Enviar para colega</button>
+          </div>
+        </label>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:2px;">
+        <button class="btn btn-ghost btn-sm" id="btnCancelCopyToTarget" type="button">Fechar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1133,6 +1358,68 @@ img {
   </div>
 </div>
 
+<!-- ============ MODAL: NOTAS DA ATUALIZAÇÃO ============ -->
+<div class="modal-backdrop" id="updateNotesModal" hidden>
+  <div class="modal modal-notes">
+    <div class="modal-head">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:22px;">🚀</span>
+        <div>
+          <h3 style="font-size:16px; margin:0;">Novidades da Atualização</h3>
+          <span style="font-size:11.5px; color:#c8a878;">Confira as novas funcionalidades do app</span>
+        </div>
+      </div>
+      <button class="modal-close" id="btnUpdateNotesClose" type="button">✕</button>
+    </div>
+
+    <div class="modal-body" style="gap:12px;">
+      <div class="update-notes-list">
+        <div class="update-note-item">
+          <div class="update-note-icon">🏰</div>
+          <div class="update-note-content">
+            <span class="update-note-title">Perfil Coletivo da Guilda</span>
+            <span class="update-note-desc">Insira o código de acesso fornecido pela liderança no menu para liberar o acesso à guilda ao lado do seu nome no topo. Apenas membros autorizados podem consultar e cadastrar ataques da guilda!</span>
+          </div>
+        </div>
+
+        <div class="update-note-item">
+          <div class="update-note-icon">🛡️</div>
+          <div class="update-note-content">
+            <span class="update-note-title">Proteção contra Exclusão</span>
+            <span class="update-note-desc">Para garantir a segurança dos dados da guilda, todos podem adicionar defesas na guilda, mas <b>apenas o líder tem permissão para remover</b> counters.</span>
+          </div>
+        </div>
+
+        <div class="update-note-item">
+          <div class="update-note-icon">🔢</div>
+          <div class="update-note-content">
+            <span class="update-note-title">Código Único de 4 Números</span>
+            <span class="update-note-desc">Cada jogador agora possui um código exclusivo de 4 dígitos (ao lado de <i>Perfil ativo</i>). Use esse número para compartilhar ou copiar counters de forma prática.</span>
+          </div>
+        </div>
+
+        <div class="update-note-item">
+          <div class="update-note-icon">📋</div>
+          <div class="update-note-content">
+            <span class="update-note-title">Cópia Seletiva com Caixas de Seleção</span>
+            <span class="update-note-desc">Ao copiar de outro jogador, você pode visualizar todos os counters dele e marcar exatamente quais quer trazer para o seu perfil.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot" style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+      <label style="display:flex; align-items:center; gap:7px; cursor:pointer; font-size:12.5px; color:#c8a878; user-select:none;">
+        <input type="checkbox" id="chkDontShowUpdateAgain" style="accent-color:var(--gold); width:16px; height:16px; cursor:pointer;">
+        <span>Não mostrar novamente</span>
+      </label>
+      <button class="btn btn-gold btn-sm" id="btnUpdateNotesDismiss" type="button" style="padding:8px 20px; font-weight:800;">
+        Entendi
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -1178,8 +1465,33 @@ const $$ = s => [...document.querySelectorAll(s)];
 
 // declaradas com `function` para poderem ser usadas por load(), que roda antes
 function fixId(id){ return SA_ALIAS[id] || id; }
+
+function isValidEntry(e){
+  if (!e || typeof e !== 'object') return false;
+  // Desconsidera objetos de presença, metadados ou usuários
+  if (e.joinedAt || e.lastActive || e.users || e.isGuild || e.slug || e.path || e.count !== undefined) return false;
+  if (e.nick && !e.def && !e.atk) return false;
+  // Um counter válido PRECISA ter pelo menos 1 monstro na defesa ou no ataque
+  const def = (Array.isArray(e.def) ? e.def : []).filter(Boolean);
+  const atk = (Array.isArray(e.atk) ? e.atk : []).filter(Boolean);
+  if (def.length === 0 && atk.length === 0) return false;
+  return true;
+}
+
 function fixEntry(e){
-  return { ...e, def: (e.def || []).map(fixId), atk: (e.atk || []).map(fixId) };
+  const def = (Array.isArray(e.def) ? e.def : []).filter(Boolean).map(fixId);
+  const atk = (Array.isArray(e.atk) ? e.atk : []).filter(Boolean).map(fixId);
+  const rateNum = Number(e.rate);
+  const rate = Number.isFinite(rateNum) ? rateNum : 80;
+  return {
+    ...e,
+    id: e.id || ('c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+    def,
+    atk,
+    rate,
+    note: typeof e.note === 'string' ? e.note : '',
+    author: typeof e.author === 'string' ? e.author : ''
+  };
 }
 
 /* ================= ARMAZENAMENTO E SALAS (NUVEM & APP) ================= */
@@ -1214,6 +1526,13 @@ function roomCodeKey(r = roomPath()){
 function getOrGenerateRoomCode(rName = roomName()){
   if (!rName) return '----';
   const p = roomPath(rName);
+  if (p === 'cd8'){
+    try {
+      const saved = localStorage.getItem(roomCodeKey('cd8'));
+      if (saved && /^\d{4}$/.test(saved)) return saved;
+    } catch {}
+    return atob('MjQyNA==');
+  }
   try {
     const saved = localStorage.getItem(roomCodeKey(p));
     if (saved && /^\d{4}$/.test(saved)) return saved;
@@ -1243,7 +1562,8 @@ function updateBrandNickPill(){
 function updateCloudIndex(rName, count, ts, customCode){
   const p = roomPath(rName);
   if (!p || p.startsWith('_')) return;
-  const code = customCode || getOrGenerateRoomCode(rName);
+  const isCD8 = p === 'cd8';
+  const code = isCD8 ? '' : (customCode || getOrGenerateRoomCode(rName));
   fetch(`${dbUrl()}/rooms/_index/${p}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -1293,7 +1613,7 @@ async function registerUserInRoom(nick, room){
   if (!cleanNick || !rPath) return;
   try {
     const userKey = encodeURIComponent(cleanNick.toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_'));
-    await fetch(`${dbUrl()}/rooms/${rPath}/users/${userKey}.json`, {
+    await fetch(`${dbUrl()}/rooms/_presence/${rPath}/${userKey}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nick: cleanNick, joinedAt: Date.now() })
@@ -1366,7 +1686,7 @@ function loadForRoom(r = roomPath()){
   if (raw){
     try {
       const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) return arr.map(fixEntry);
+      if (Array.isArray(arr)) return arr.filter(isValidEntry).map(fixEntry);
     } catch {}
   }
   return [];
@@ -1390,12 +1710,31 @@ function saveQuery(){
 }
 let query = loadQuery();
 let editing = null;                 // id do counter em edição (null = novo)
-let entries = load();
+let entries = load().filter(isValidEntry);
+
+// Higienização automática: remove counters fantasmas e corrupções do armazenamento local
+try {
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('sw_siege_counters_room_')){
+      try {
+        const raw = JSON.parse(localStorage.getItem(k) || '[]');
+        if (Array.isArray(raw)){
+          const cleaned = raw.filter(isValidEntry).map(fixEntry);
+          if (cleaned.length !== raw.length){
+            localStorage.setItem(k, JSON.stringify(cleaned));
+          }
+        }
+      } catch {}
+    }
+  });
+} catch {}
+
 let picking = null;          // {side, index}
 let elFilter = 'all';
 let natFilter = 'all';   // filtro de estrelas naturais
 
 function persist(syncCloud = true){
+  entries = (entries || []).filter(isValidEntry);
   const k = roomStoreKey();
   try {
     localStorage.setItem(k, JSON.stringify(entries));
@@ -1614,8 +1953,394 @@ function miniHTML(id){
   </div>`;
 }
 
+async function copyEntryToGuild(e, guildSlug, guildName){
+  const g = (guildSlug || getActiveGuildSlug() || 'cd8').toLowerCase();
+  const gTitle = guildName || getActiveGuildName() || g.toUpperCase();
+
+  // Verifica se a guilda foi desbloqueada neste aparelho
+  if (!isGuildUnlocked(g)){
+    toast(`⚠️ Insira o código da guilda no menu para liberar o envio para a ${gTitle}`);
+    openSync();
+    return;
+  }
+
+  let guildCounters = [];
+  try {
+    const res = await fetch(`${dbUrl()}/rooms/${g}.json`);
+    if (res.ok){
+      const data = await res.json();
+      if (data) guildCounters = extractEntries(data);
+    }
+  } catch {}
+
+  if (!guildCounters.length){
+    guildCounters = loadForRoom(g);
+  }
+
+  const sig = `${(e.def||[]).slice().sort().join(',')}|${(e.atk||[]).slice().sort().join(',')}|${(e.note||'').trim()}`;
+  const exists = guildCounters.some(x => {
+    const xSig = `${(x.def||[]).slice().sort().join(',')}|${(x.atk||[]).slice().sort().join(',')}|${(x.note||'').trim()}`;
+    return xSig === sig;
+  });
+
+  if (exists){
+    toast(`⚠️ Este counter já existe na guilda ${gTitle}!`);
+    return;
+  }
+
+  const authorName = e.author || userNick() || 'Membro';
+  const rateNum = Number(e.rate);
+  const newEntry = {
+    id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    def: [...(e.def || [])],
+    atk: [...(e.atk || [])],
+    rate: Number.isFinite(rateNum) ? rateNum : 80,
+    note: e.note || '',
+    author: authorName
+  };
+
+  guildCounters.unshift(newEntry);
+
+  try {
+    localStorage.setItem(roomStoreKey(g), JSON.stringify(guildCounters));
+    localStorage.setItem(roomBackupKey(g), JSON.stringify(guildCounters));
+  } catch {}
+
+  if (cloudOn()){
+    try {
+      const ts = Date.now();
+      const gCode = getOrGenerateRoomCode(g);
+      await fetch(`${dbUrl()}/rooms/${g}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updated: ts,
+          entries: guildCounters,
+          code: gCode
+        })
+      });
+      updateCloudIndex(g, guildCounters.length, ts, gCode);
+    } catch (err){
+      console.warn(`Erro ao salvar na nuvem da guilda ${gTitle}:`, err);
+    }
+  }
+
+  toast(`✔ Time copiado com sucesso para a guilda ${gTitle}!`);
+}
+
+async function copyEntryToPersonal(e){
+  const myRoom = userNick() || 'Pessoal';
+  const myPath = roomPath(myRoom);
+  let myEntries = [];
+  try {
+    const res = await fetch(`${dbUrl()}/rooms/${myPath}.json`);
+    if (res.ok){
+      const data = await res.json();
+      if (data) myEntries = extractEntries(data);
+    }
+  } catch {}
+
+  if (!myEntries.length){
+    myEntries = loadForRoom(myPath);
+  }
+
+  const sig = `${(e.def||[]).slice().sort().join(',')}|${(e.atk||[]).slice().sort().join(',')}|${(e.note||'').trim()}`;
+  const exists = myEntries.some(x => {
+    const xSig = `${(x.def||[]).slice().sort().join(',')}|${(x.atk||[]).slice().sort().join(',')}|${(x.note||'').trim()}`;
+    return xSig === sig;
+  });
+
+  if (exists){
+    toast('⚠️ Este counter já existe no seu perfil pessoal!');
+    return;
+  }
+
+  const rateNumPers = Number(e.rate);
+  const newEntry = {
+    id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    def: [...(e.def || [])],
+    atk: [...(e.atk || [])],
+    rate: Number.isFinite(rateNumPers) ? rateNumPers : 80,
+    note: e.note || '',
+    author: e.author || myRoom
+  };
+
+  myEntries.unshift(newEntry);
+
+  try {
+    localStorage.setItem(roomStoreKey(myPath), JSON.stringify(myEntries));
+    localStorage.setItem(roomBackupKey(myPath), JSON.stringify(myEntries));
+  } catch {}
+
+  if (cloudOn()){
+    try {
+      const ts = Date.now();
+      const myCode = getOrGenerateRoomCode(myRoom);
+      await fetch(`${dbUrl()}/rooms/${myPath}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updated: ts,
+          entries: myEntries,
+          code: myCode
+        })
+      });
+      updateCloudIndex(myRoom, myEntries.length, ts, myCode);
+    } catch (err){
+      console.warn('Erro ao salvar no perfil pessoal:', err);
+    }
+  }
+
+  toast(`✔ Time copiado para seu perfil pessoal ("${myRoom}")!`);
+}
+
+async function copyEntryToUser(e, targetCode){
+  const code = String(targetCode || '').trim();
+  if (!/^\d{4}$/.test(code)){
+    toast('Digite um código de 4 números válido');
+    return false;
+  }
+  const myCode = userCode();
+  if (code === myCode){
+    toast('⚠️ Este é o seu próprio código!');
+    return false;
+  }
+
+  toast('Buscando jogador na nuvem...');
+  let targetPath = '';
+  let targetName = '';
+
+  try {
+    const cRes = await fetch(`${dbUrl()}/rooms/_codes/${code}.json`);
+    if (cRes.ok){
+      const cData = await cRes.json();
+      if (cData && (cData.path || cData.name)){
+        targetPath = cData.path || roomPath(cData.name);
+        targetName = cData.name || targetPath;
+      }
+    }
+  } catch (err){
+    console.warn('Erro ao buscar código:', err);
+  }
+
+  // Fallback se não estiver no _codes, procura em _index
+  if (!targetPath){
+    try {
+      const idxRes = await fetch(`${dbUrl()}/rooms/_index.json`);
+      if (idxRes.ok){
+        const idxData = await idxRes.json();
+        if (idxData && typeof idxData === 'object'){
+          for (const item of Object.values(idxData)){
+            if (item && String(item.code) === code){
+              targetPath = item.path || roomPath(item.name);
+              targetName = item.name || targetPath;
+              break;
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  if (!targetPath){
+    toast('✕ Jogador não encontrado! Verifique os 4 números com seu colega.');
+    return false;
+  }
+
+  let targetEntries = [];
+  try {
+    const res = await fetch(`${dbUrl()}/rooms/${targetPath}.json`);
+    if (res.ok){
+      const data = await res.json();
+      if (data) targetEntries = extractEntries(data);
+    }
+  } catch (err){
+    console.warn('Erro ao carregar counters do jogador:', err);
+  }
+
+  const sig = `${(e.def||[]).slice().sort().join(',')}|${(e.atk||[]).slice().sort().join(',')}|${(e.note||'').trim()}`;
+  const exists = targetEntries.some(x => {
+    const xSig = `${(x.def||[]).slice().sort().join(',')}|${(x.atk||[]).slice().sort().join(',')}|${(x.note||'').trim()}`;
+    return xSig === sig;
+  });
+
+  if (exists){
+    toast(`⚠️ Este counter já existe no perfil de "${targetName}"!`);
+    return false;
+  }
+
+  const authorName = e.author || userNick() || 'Colega';
+  const rateNumUser = Number(e.rate);
+  const newEntry = {
+    id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    def: [...(e.def || [])],
+    atk: [...(e.atk || [])],
+    rate: Number.isFinite(rateNumUser) ? rateNumUser : 80,
+    note: e.note || '',
+    author: authorName
+  };
+
+  targetEntries.unshift(newEntry);
+
+  try {
+    const ts = Date.now();
+    await fetch(`${dbUrl()}/rooms/${targetPath}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        updated: ts,
+        entries: targetEntries,
+        code: code
+      })
+    });
+    updateCloudIndex(targetName, targetEntries.length, ts, code);
+    toast(`✔ Time enviado com sucesso para "${targetName}" (${code})!`);
+    return true;
+  } catch (err){
+    console.warn('Erro ao salvar no perfil do colega:', err);
+    toast('✕ Falha ao enviar para o colega. Verifique a conexão.');
+    return false;
+  }
+}
+
+let pendingCopyTargetEntry = null;
+
+function openCopyToTargetModal(entry){
+  if (!entry || !isValidEntry(entry)) return;
+  pendingCopyTargetEntry = fixEntry(entry);
+  const modal = $('#copyToTargetModal');
+  if (!modal) return;
+  modal.hidden = false;
+
+  const prevEl = $('#copyTargetPreview');
+  if (prevEl){
+    prevEl.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span class="rate rate-${entry.rate}" style="font-size:11px; padding:2px 7px;">${entry.rate}% win</span>
+        ${entry.author ? `<span style="font-size:11px; color:#c8a878;">👤 ${esc(entry.author)}</span>` : ''}
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+        <div style="display:flex; gap:3px;">${(entry.def||[]).map(miniHTML).join('')}</div>
+        <span style="color:#d49b43; font-weight:800; font-size:13px;">VS</span>
+        <div style="display:flex; gap:3px;">${(entry.atk||[]).map(miniHTML).join('')}</div>
+      </div>
+      ${entry.note ? `<div style="font-size:11.5px; color:#c8a878; font-style:italic; margin-top:6px;">💬 ${esc(entry.note)}</div>` : ''}
+    `;
+  }
+
+  const gSlug = getActiveGuildSlug();
+  const gName = getActiveGuildName();
+  const isUnlocked = isGuildUnlocked(gSlug);
+  const actionBox = $('#copyToGuildActionBox');
+  if (actionBox){
+    if (isUnlocked && gSlug){
+      actionBox.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px;">
+          <span style="font-size:12px; color:#85d685;">✔ Conectado a: <strong>${esc(gName)}</strong></span>
+          <button class="btn btn-gold btn-sm" id="btnConfirmCopyGuild" type="button">Enviar para ${esc(gName)}</button>
+        </div>
+      `;
+      const btnG = $('#btnConfirmCopyGuild');
+      if (btnG){
+        btnG.addEventListener('click', async () => {
+          if (!pendingCopyTargetEntry) return;
+          btnG.disabled = true;
+          try {
+            await copyEntryToGuild(pendingCopyTargetEntry, gSlug, gName);
+            closeCopyToTargetModal();
+          } finally {
+            btnG.disabled = false;
+          }
+        });
+      }
+    } else {
+      actionBox.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px;">
+          <span style="font-size:11.5px; color:#a89070;">Nenhuma guilda conectada</span>
+          <button class="btn btn-ghost btn-sm" id="btnOpenConnectFromCopy" type="button">Inserir código</button>
+        </div>
+      `;
+      const btnC = $('#btnOpenConnectFromCopy');
+      if (btnC){
+        btnC.addEventListener('click', () => {
+          closeCopyToTargetModal();
+          openSync();
+        });
+      }
+    }
+  }
+
+  const inp = $('#inpCopyTargetUserCode');
+  if (inp) {
+    inp.value = '';
+    setTimeout(() => { if (inp) inp.focus(); }, 120);
+  }
+}
+
+function closeCopyToTargetModal(){
+  const modal = $('#copyToTargetModal');
+  if (modal) modal.hidden = true;
+  pendingCopyTargetEntry = null;
+}
+
+const copyCloseBtn = $('#copyToTargetClose');
+if (copyCloseBtn) copyCloseBtn.addEventListener('click', closeCopyToTargetModal);
+const btnCancelTarget = $('#btnCancelCopyToTarget');
+if (btnCancelTarget) btnCancelTarget.addEventListener('click', closeCopyToTargetModal);
+
+const btnConfirmTarget = $('#btnConfirmCopyTargetUser');
+if (btnConfirmTarget){
+  btnConfirmTarget.addEventListener('click', async () => {
+    const inp = $('#inpCopyTargetUserCode');
+    const code = (inp ? inp.value : '').trim();
+    if (!/^\d{4}$/.test(code)){
+      toast('Digite o código de 4 números do jogador');
+      return;
+    }
+    if (!pendingCopyTargetEntry) return;
+    btnConfirmTarget.disabled = true;
+    try {
+      const ok = await copyEntryToUser(pendingCopyTargetEntry, code);
+      if (ok) closeCopyToTargetModal();
+    } finally {
+      btnConfirmTarget.disabled = false;
+    }
+  });
+}
+const inpTarget = $('#inpCopyTargetUserCode');
+if (inpTarget){
+  inpTarget.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      const btn = $('#btnConfirmCopyTargetUser');
+      if (btn) btn.click();
+    }
+  });
+}
+
 function cardEl(e, opts){
+  if (!isValidEntry(e)){
+    const emptyCard = document.createElement('div');
+    emptyCard.style.display = 'none';
+    return emptyCard;
+  }
   opts = opts || {};
+  const currentGuildSlug = getActiveGuildSlug();
+  const currentGuildName = getActiveGuildName();
+  const curRoom = (roomName() || '').toLowerCase();
+  const isGuildRoom = currentGuildSlug && (curRoom === currentGuildSlug || curRoom === 'cd8');
+  const isLeader = isGuildLeader(currentGuildSlug);
+  const canDelete = !isGuildRoom || isLeader;
+  const canEdit = !isGuildRoom || isLeader;
+  const winRate = Number.isFinite(Number(e.rate)) ? Number(e.rate) : 80;
+
+  let copyBtnHtml = '';
+  if (isGuildRoom){
+    copyBtnHtml = '<button class="btn-copy-personal" type="button" title="Copiar este counter para o seu perfil pessoal">👤 Copiar para Mim</button>';
+  } else {
+    copyBtnHtml = '<button class="btn-copy-target" type="button" title="Copiar este counter para a guilda ou colega">📋 Copiar para...</button>';
+  }
+
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `
@@ -1630,30 +2355,57 @@ function cardEl(e, opts){
       <div class="card-tags">
         ${opts.tag || ''}
         ${e.author ? `<span class="card-author" title="Criado por ${esc(e.author)}">👤 ${esc(e.author)}</span>` : ''}
-        <span class="rate rate-${e.rate}">${e.rate}% win</span>
+        <span class="rate rate-${winRate}">${winRate}% win</span>
       </div>
       <div class="card-btns">
-        ${opts.noEdit   ? '' : '<button class="edit" type="button" title="Editar">✏️</button>'}
-        ${opts.noDelete ? '' : '<button class="del" type="button" title="Excluir">🗑</button>'}
+        ${copyBtnHtml}
+        ${(canEdit && !opts.noEdit) ? '<button class="edit" type="button" title="Editar este counter">✏️</button>' : ''}
+        ${(canDelete && !opts.noDelete) ? '<button class="del" type="button" title="Excluir este counter">🗑</button>' : ''}
       </div>
     </div>
     ${e.note ? `<div class="card-note">💬 ${esc(e.note)}</div>` : ''}`;
   const ed = card.querySelector('.edit');
   if (ed) ed.addEventListener('click', () => openEdit(e.id));
 
+  const btnTarget = card.querySelector('.btn-copy-target');
+  if (btnTarget){
+    btnTarget.addEventListener('click', () => {
+      openCopyToTargetModal(e);
+    });
+  }
+
+  const btnPers = card.querySelector('.btn-copy-personal');
+  if (btnPers){
+    btnPers.addEventListener('click', async () => {
+      btnPers.disabled = true;
+      try {
+        await copyEntryToPersonal(e);
+      } finally {
+        setTimeout(() => { btnPers.disabled = false; }, 600);
+      }
+    });
+  }
+
   const del = card.querySelector('.del');
-  if (del) del.addEventListener('click', () => {
-    entries = entries.filter(x => x.id !== e.id);
-    persist(true);
-    if (roomName() && cloudOn()) cloudAuto(true);
-    renderList();
-    renderQuery();
-    toast('Counter removido');
-  });
+  if (del){
+    del.addEventListener('click', () => {
+      if (isGuildRoom && !isLeader){
+        toast(`⚠️ Apenas o líder pode remover counters da guilda ${currentGuildName}`);
+        return;
+      }
+      entries = entries.filter(x => x.id !== e.id);
+      persist(true);
+      if (roomName() && cloudOn()) cloudAuto(true);
+      renderList();
+      renderQuery();
+      toast('Counter removido');
+    });
+  }
   return card;
 }
 
 function renderList(){
+  entries = (entries || []).filter(isValidEntry);
   const filterInput = $('#inpFilter');
   const q = norm(filterInput ? filterInput.value.trim() : '');
   const shown = entries.filter(e => {
@@ -1706,15 +2458,17 @@ function syncRefresh(){
 
 function extractEntries(data){
   if (!data) return [];
-  if (Array.isArray(data)) return data.filter(Boolean).map(fixEntry);
-  const raw = (data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'entries'))
-    ? data.entries
-    : data;
-  if (Array.isArray(raw)) return raw.filter(Boolean).map(fixEntry);
-  if (raw && typeof raw === 'object'){
-    return Object.values(raw).filter(x => x && typeof x === 'object').map(fixEntry);
+  let rawList = [];
+  if (Array.isArray(data)){
+    rawList = data;
+  } else if (data && typeof data === 'object'){
+    if (Array.isArray(data.entries)){
+      rawList = data.entries;
+    } else if (data.entries && typeof data.entries === 'object'){
+      rawList = Object.values(data.entries);
+    }
   }
-  return [];
+  return rawList.filter(isValidEntry).map(fixEntry);
 }
 
 async function cloudSave(){
@@ -1918,7 +2672,7 @@ let copySearchQuery = '';
 function openCopyModal(srcName, candidateList, srcCode){
   copySource = srcName;
   const codeStr = srcCode ? ` (#${srcCode})` : '';
-  copyCandidateList = (candidateList || []).slice();
+  copyCandidateList = (candidateList || []).filter(isValidEntry).map(fixEntry);
   copySelectedIndices.clear();
   copySearchQuery = '';
 
@@ -2063,11 +2817,11 @@ async function confirmCopySelection(){
   const sortedIndices = Array.from(copySelectedIndices).sort((a,b) => a - b);
   sortedIndices.forEach((idx, offset) => {
     const item = copyCandidateList[idx];
-    if (!item) return;
+    if (!item || !isValidEntry(item)) return;
     const sig = `${(item.def||[]).slice().sort().join(',')}|${(item.atk||[]).slice().sort().join(',')}|${(item.note||'').trim()}`;
     if (!existingSigs.has(sig)){
       entries.push({
-        ...item,
+        ...fixEntry(item),
         id: Date.now() + offset + Math.floor(Math.random() * 1000)
       });
       existingSigs.add(sig);
@@ -2106,6 +2860,13 @@ async function switchRoom(newRoom, fetchCloud = true, migrateCurrent = false){
   const nextRoom = (newRoom || userNick() || '').trim();
   if (!nextRoom){
     toast('Informe o perfil');
+    return;
+  }
+  const gSlug = getActiveGuildSlug();
+  const isTargetGuild = (gSlug && nextRoom.toLowerCase() === gSlug) || nextRoom.toLowerCase() === 'cd8';
+  if (isTargetGuild && !isGuildUnlocked(nextRoom.toLowerCase())){
+    toast('⚠️ Digite o código da guilda no menu para liberar o acesso');
+    openSync();
     return;
   }
   const prevRoom = roomName();
@@ -2213,6 +2974,118 @@ function renderRoomsSelect(){
   });
 }
 
+/* ---------- controle de guildas (apenas UMA guilda conectada por vez) ---------- */
+function getActiveGuildSlug(){
+  return (localStorage.getItem('siege_active_guild_slug') || '').toLowerCase().trim();
+}
+
+function getActiveGuildName(){
+  return localStorage.getItem('siege_active_guild_name') || '';
+}
+
+function isGuildLeader(gSlug = getActiveGuildSlug()){
+  if (window.__isLeader) return true;
+  const g = (gSlug || getActiveGuildSlug() || '').toLowerCase().trim();
+  if (!g) return false;
+  try {
+    return localStorage.getItem(`siege_guild_leader_${g}`) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function isGuildUnlocked(gSlug = getActiveGuildSlug()){
+  const activeSlug = getActiveGuildSlug();
+  if (!activeSlug) return false;
+  if (!gSlug) return true;
+  return (gSlug.toLowerCase().trim() === activeSlug);
+}
+
+function unlockGuild(gSlug, code, gName){
+  const slug = (gSlug || '').toLowerCase().trim();
+  if (!slug) return;
+  const name = gName || slug.toUpperCase();
+  try {
+    const prev = getActiveGuildSlug();
+    if (prev && prev !== slug){
+      localStorage.removeItem(`siege_guild_unlocked_${prev}`);
+    }
+    localStorage.setItem('siege_active_guild_slug', slug);
+    localStorage.setItem('siege_active_guild_name', name);
+    if (code) localStorage.setItem('siege_active_guild_code', code);
+    localStorage.setItem(`siege_guild_unlocked_${slug}`, '1');
+  } catch {}
+  addKnownRoom(slug);
+  updateSwitcherState();
+  updateGuildMenuUI();
+  updateBrandRoomPill();
+}
+
+function lockGuild(){
+  const gSlug = getActiveGuildSlug();
+  try {
+    if (gSlug){
+      localStorage.removeItem(`siege_guild_unlocked_${gSlug}`);
+      localStorage.removeItem(`siege_guild_code_${gSlug}`);
+    }
+    localStorage.removeItem('siege_active_guild_slug');
+    localStorage.removeItem('siege_active_guild_name');
+    localStorage.removeItem('siege_active_guild_code');
+    localStorage.removeItem('siege_joined_guilds');
+  } catch {}
+
+  const cur = (roomName() || '').toLowerCase().trim();
+  if (cur && (cur === gSlug || cur === 'cd8')){
+    const nick = userNick() || 'Pessoal';
+    switchRoom(nick, true);
+  }
+
+  updateSwitcherState();
+  updateGuildMenuUI();
+  updateBrandRoomPill();
+}
+
+function updateGuildMenuUI(){
+  const gSlug = getActiveGuildSlug();
+  const gName = getActiveGuildName();
+  const isUnlocked = isGuildUnlocked(gSlug);
+  const lockedBox = $('#guildLockedBox');
+  const unlockedBox = $('#guildUnlockedBox');
+
+  if (lockedBox) lockedBox.style.display = isUnlocked ? 'none' : 'block';
+  if (unlockedBox) unlockedBox.style.display = isUnlocked ? 'block' : 'none';
+
+  const nameEl = $('#guildConnectedName');
+  if (nameEl) nameEl.textContent = `Guilda ${gName} Conectada`;
+}
+
+function updateSwitcherState(){
+  const gSlug = getActiveGuildSlug();
+  const gName = getActiveGuildName();
+  const cur = (roomName() || '').toLowerCase().trim();
+  const isGuild = gSlug && cur === gSlug;
+  const btnPers = $('#btnSwitchPersonal');
+  const btnGuild = $('#btnSwitchCD8');
+  const labelPers = $('#labelSwitchPersonal');
+  const labelGuild = $('#labelSwitchCD8');
+
+  if (labelPers){
+    labelPers.textContent = userNick() || 'Pessoal';
+  }
+  if (labelGuild){
+    labelGuild.textContent = gName || 'Guilda';
+  }
+
+  const guildUnlocked = isGuildUnlocked(gSlug);
+  if (btnGuild){
+    btnGuild.style.display = (guildUnlocked && gSlug) ? 'inline-flex' : 'none';
+    btnGuild.title = `Perfil coletivo ${gName || 'Guilda'} (todos adicionam)`;
+    btnGuild.classList.toggle('active', !!isGuild);
+  }
+
+  if (btnPers) btnPers.classList.toggle('active', !isGuild);
+}
+
 function updateBrandRoomPill(){
   const nameEl = $('#brandRoomName');
   const countEl = $('#brandRoomCount');
@@ -2225,9 +3098,21 @@ function updateBrandRoomPill(){
   const dispCode = $('#displayActiveCode');
   const code = getOrGenerateRoomCode(r);
 
+  const curGuild = getActiveGuildSlug();
+  const isGuildRoom = curGuild && ((r || '').toLowerCase() === curGuild || (r || '').toLowerCase() === 'cd8');
+
   if (dispRoom) dispRoom.textContent = r || 'Sem perfil';
-  if (dispCode) dispCode.textContent = r ? `#${code}` : '----';
+  if (dispCode){
+    if (isGuildRoom){
+      dispCode.style.display = 'none'; // Esconde completamente o código se estiver no perfil da guilda
+    } else {
+      dispCode.style.display = '';
+      dispCode.textContent = r ? `#${code}` : '----';
+    }
+  }
   if (dispCount) dispCount.textContent = `${entries.length} counter${entries.length !== 1 ? 's' : ''}`;
+
+  updateSwitcherState();
 }
 
 // salva na nuvem em segundo plano após cada alteração (se configurado)
@@ -2241,14 +3126,15 @@ function cloudAuto(immediate = false){
     try {
       const ts = getLastUpdated(path) || Date.now();
       const code = getOrGenerateRoomCode(r);
+      const validList = (entries || []).filter(isValidEntry);
       const res = await fetch(`${dbUrl()}/rooms/${path}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ updated: ts, entries, code }),
+        body: JSON.stringify({ updated: ts, entries: validList, code }),
       });
       if (res.ok){
-        updateCloudIndex(r, entries.length, ts, code);
-        syncMsg(`✔ Salvo na nuvem: "${r}" (${entries.length} counters)`, 'ok');
+        updateCloudIndex(r, validList.length, ts, code);
+        syncMsg(`✔ Salvo na nuvem: "${r}" (${validList.length} counters)`, 'ok');
       }
     } catch (err) {
       console.warn('Falha na sincronização automática:', err);
@@ -2358,6 +3244,9 @@ async function renameProfile(oldName, newName){
 function openSync(){
   const inpCopy = $('#inpCopyFrom');
   if (inpCopy) inpCopy.value = '';
+  const inpG = $('#inpGuildCode');
+  if (inpG) inpG.value = '';
+  updateGuildMenuUI();
   syncRefresh();
   updateBrandNickPill();
   updateBrandRoomPill();
@@ -2393,7 +3282,9 @@ if (inpCopy){
 const dispActiveCode = $('#displayActiveCode');
 if (dispActiveCode){
   dispActiveCode.addEventListener('click', () => {
-    const code = getOrGenerateRoomCode(roomName());
+    const r = roomName();
+    if ((r || '').toLowerCase() === 'cd8') return; // Nunca copia código da guilda
+    const code = getOrGenerateRoomCode(r);
     if (code && code !== '----'){
       if (navigator.clipboard && navigator.clipboard.writeText){
         navigator.clipboard.writeText(code).then(() => {
@@ -2405,6 +3296,274 @@ if (dispActiveCode){
         toast(`Seu código é: #${code}`);
       }
     }
+  });
+}
+
+/* ---------- alternador de perfil no topo (Pessoal vs CD8) ---------- */
+const btnSwitchPersonal = $('#btnSwitchPersonal');
+if (btnSwitchPersonal){
+  btnSwitchPersonal.addEventListener('click', async () => {
+    const nick = userNick() || 'Pessoal';
+    if ((roomName() || '').toLowerCase() === nick.toLowerCase()) return;
+    await switchRoom(nick, true);
+    updateSwitcherState();
+    toast(`✔ Alternado para Perfil Pessoal ("${nick}")`);
+  });
+}
+
+const btnSwitchCD8 = $('#btnSwitchCD8');
+if (btnSwitchCD8){
+  btnSwitchCD8.addEventListener('click', async () => {
+    const gSlug = getActiveGuildSlug();
+    const gName = getActiveGuildName();
+    if (!isGuildUnlocked(gSlug)){
+      toast('⚠️ Digite o código da guilda no menu para liberar o acesso');
+      openSync();
+      return;
+    }
+    if ((roomName() || '').toLowerCase() === gSlug) return;
+    await switchRoom(gSlug, true);
+    updateSwitcherState();
+    toast(`✔ Alternado para ${gName} (Perfil Coletivo da Guilda)`);
+  });
+}
+
+/* ---------- controle do código da guilda no menu ---------- */
+async function submitGuildCode(){
+  const inp = $('#inpGuildCode');
+  const val = (inp ? inp.value : '').trim();
+  if (!val){
+    toast('Digite o código fornecido pela liderança da guilda');
+    return;
+  }
+
+  let matchedGuild = null;
+  const defaultGuildCode = atob('MjQyNA==');
+
+  // 1. Guilda padrão CD8
+  if (val === defaultGuildCode){
+    matchedGuild = { name: 'CD8', slug: 'cd8' };
+  } else {
+    // 2. Busca na nuvem em _codes
+    try {
+      const res = await fetch(`${dbUrl()}/rooms/_codes/${val}.json`);
+      if (res.ok){
+        const data = await res.json();
+        if (data && (data.isGuild || data.path === 'cd8' || data.name)){
+          const slug = data.path || roomPath(data.name);
+          const name = data.name || slug.toUpperCase();
+          matchedGuild = { name, slug };
+        }
+      }
+    } catch {}
+
+    // 3. Fallback: busca em _guilds se não encontrado em _codes
+    if (!matchedGuild){
+      try {
+        const gRes = await fetch(`${dbUrl()}/rooms/_guilds.json`);
+        if (gRes.ok){
+          const gData = await gRes.json();
+          if (gData && typeof gData === 'object'){
+            for (const item of Object.values(gData)){
+              if (item && String(item.code) === val){
+                matchedGuild = { name: item.name, slug: item.slug || roomPath(item.name) };
+                break;
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  if (!matchedGuild){
+    toast('✕ Código de guilda incorreto ou não encontrado!');
+    return;
+  }
+
+  unlockGuild(matchedGuild.slug, val, matchedGuild.name);
+  if (inp) inp.value = '';
+  toast(`✔ Guilda "${matchedGuild.name}" liberada com sucesso!`);
+  updateSwitcherState();
+  updateBrandRoomPill();
+}
+
+const btnApplyGuild = $('#btnApplyGuildCode');
+if (btnApplyGuild) btnApplyGuild.addEventListener('click', submitGuildCode);
+const inpGuild = $('#inpGuildCode');
+if (inpGuild){
+  inpGuild.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      submitGuildCode();
+    }
+  });
+}
+const btnRemoveGuild = $('#btnRemoveGuildAccess');
+if (btnRemoveGuild){
+  btnRemoveGuild.addEventListener('click', () => {
+    const gName = getActiveGuildName() || 'da guilda';
+    if (confirm(`Deseja desconectar e sair da guilda "${gName}" deste dispositivo?`)){
+      lockGuild();
+      toast(`Você saiu da guilda "${gName}".`);
+    }
+  });
+}
+
+/* ---------- criação de nova guilda e alternância ---------- */
+function openCreateGuildModal(){
+  const modal = $('#createGuildModal');
+  if (!modal) return;
+  modal.hidden = false;
+  const nameInp = $('#inpModalCreateGuildName');
+  const codeInp = $('#inpModalCreateGuildCode');
+  if (nameInp) nameInp.value = '';
+  if (codeInp) codeInp.value = '';
+  setTimeout(() => { if (nameInp) nameInp.focus(); }, 120);
+}
+
+function closeCreateGuildModal(){
+  const modal = $('#createGuildModal');
+  if (!modal) return;
+  modal.hidden = true;
+}
+
+const btnOpenCreateModal = $('#btnOpenCreateGuildModal');
+if (btnOpenCreateModal) btnOpenCreateModal.addEventListener('click', openCreateGuildModal);
+
+const btnCloseCreateModal = $('#createGuildClose');
+if (btnCloseCreateModal) btnCloseCreateModal.addEventListener('click', closeCreateGuildModal);
+
+const btnCancelCreate = $('#btnCancelCreateGuild');
+if (btnCancelCreate) btnCancelCreate.addEventListener('click', closeCreateGuildModal);
+
+const createGuildModalEl = $('#createGuildModal');
+if (createGuildModalEl){
+  createGuildModalEl.addEventListener('click', e => {
+    if (e.target.id === 'createGuildModal') closeCreateGuildModal();
+  });
+}
+
+const btnModalGen = $('#btnModalGenGuildCode');
+if (btnModalGen){
+  btnModalGen.addEventListener('click', () => {
+    const rnd = String(Math.floor(1000 + Math.random() * 9000));
+    const inp = $('#inpModalCreateGuildCode');
+    if (inp) inp.value = rnd;
+    toast(`Código gerado: #${rnd}`);
+  });
+}
+
+async function handleCreateGuildSubmit(){
+  const nameInput = $('#inpModalCreateGuildName');
+  const codeInput = $('#inpModalCreateGuildCode');
+  const rawName = (nameInput ? nameInput.value : '').trim();
+  const rawCode = (codeInput ? codeInput.value : '').trim();
+
+  if (!userNick()){
+    toast('Informe seu Nick primeiro antes de criar uma guilda');
+    return;
+  }
+  if (!rawName || rawName.length < 2){
+    toast('Informe o nome da guilda (mínimo 2 caracteres)');
+    return;
+  }
+  if (!/^\d{4}$/.test(rawCode)){
+    toast('O código da guilda deve conter exatamente 4 números (ex: 5566)');
+    return;
+  }
+
+  const slug = roomPath(rawName);
+  if (!slug || slug.startsWith('_')){
+    toast('Nome de guilda inválido');
+    return;
+  }
+
+  // Verifica colisão de código
+  try {
+    const checkRes = await fetch(`${dbUrl()}/rooms/_codes/${rawCode}.json`);
+    if (checkRes.ok){
+      const checkData = await checkRes.json();
+      if (checkData && checkData.name && checkData.name.toLowerCase() !== rawName.toLowerCase()){
+        toast(`✕ O código #${rawCode} já está em uso por "${checkData.name}". Escolha outro número.`);
+        return;
+      }
+    }
+  } catch {}
+
+  const creatorNick = userNick() || 'Líder';
+  const ts = Date.now();
+  const guildObj = {
+    name: rawName,
+    slug: slug,
+    code: rawCode,
+    createdBy: creatorNick,
+    createdAt: ts,
+    isGuild: true
+  };
+
+  try {
+    await fetch(`${dbUrl()}/rooms/_codes/${rawCode}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: rawName, path: slug, code: rawCode, isGuild: true, createdBy: creatorNick })
+    });
+    await fetch(`${dbUrl()}/rooms/_guilds/${slug}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(guildObj)
+    });
+    await fetch(`${dbUrl()}/rooms/_index/${slug}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: rawName, path: slug, code: rawCode, isGuild: true, count: 0, updated: ts })
+    });
+  } catch (err){
+    console.warn('Erro ao salvar guilda na nuvem:', err);
+  }
+
+  try {
+    localStorage.setItem(`siege_guild_leader_${slug}`, '1');
+  } catch {}
+
+  unlockGuild(slug, rawCode, rawName);
+  closeCreateGuildModal();
+
+  toast(`✔ Guilda "${rawName}" criada com sucesso!`);
+  alert(`🏰 GUILDA "${rawName.toUpperCase()}" CRIADA COM SUCESSO!\n\nCódigo de Acesso: ${rawCode}\n\n⚠️ GUARDE O CÓDIGO!\nPasse esse código apenas para os membros da sua guilda. Eles deverão digitar esse código em "Inserir código da guilda" para ter acesso aos counters.`);
+
+  await switchRoom(slug, true);
+  closeSync();
+}
+
+const btnConfirmCreate = $('#btnConfirmCreateGuild');
+if (btnConfirmCreate) btnConfirmCreate.addEventListener('click', handleCreateGuildSubmit);
+
+/* ---------- modal notas da atualização ---------- */
+function showUpdateNotesModal(){
+  const modal = $('#updateNotesModal');
+  if (!modal) return;
+  modal.hidden = false;
+}
+
+function closeUpdateNotesModal(){
+  const modal = $('#updateNotesModal');
+  if (!modal) return;
+  const chk = $('#chkDontShowUpdateAgain');
+  if (chk && chk.checked){
+    try { localStorage.setItem('siege_update_v15_seen', '1'); } catch {}
+  }
+  modal.hidden = true;
+}
+
+const btnNotesClose = $('#btnUpdateNotesClose');
+if (btnNotesClose) btnNotesClose.addEventListener('click', closeUpdateNotesModal);
+const btnNotesDismiss = $('#btnUpdateNotesDismiss');
+if (btnNotesDismiss) btnNotesDismiss.addEventListener('click', closeUpdateNotesModal);
+const updateNotesModal = $('#updateNotesModal');
+if (updateNotesModal){
+  updateNotesModal.addEventListener('click', e => {
+    if (e.target.id === 'updateNotesModal') closeUpdateNotesModal();
   });
 }
 
@@ -2494,7 +3653,7 @@ function handlePointerDown(e){
     if (navigator.vibrate) try { navigator.vibrate(60); } catch {}
     toast('👑 Painel do Administrador');
     openAdminModal();
-  }, 700);
+  }, 2000);
 }
 
 function handlePointerCancel(e){
@@ -2560,6 +3719,12 @@ if (inpAdminCopy){
 
 /* ---------- modal secreto do administrador ---------- */
 function openAdminModal(){
+  window.__isLeader = true;
+  try {
+    localStorage.setItem('siege_is_leader', '1');
+    localStorage.setItem('siege_guild_leader_cd8', '1');
+  } catch {}
+  renderList();
   const modal = $('#adminModal');
   if (!modal) return;
   modal.hidden = false;
@@ -2615,6 +3780,31 @@ if (inpAdminRoom){
       toast(`✔ Perfil "${val}" aberto como ativo para edição!`);
     }
   });
+}
+
+async function setRoomCode(rName, newCode){
+  const clean = (newCode || '').trim();
+  if (!clean || !/^\d{4}$/.test(clean)) return;
+  const p = roomPath(rName);
+  const oldCode = getOrGenerateRoomCode(rName);
+
+  try {
+    localStorage.setItem(roomCodeKey(p), clean);
+  } catch {}
+
+  try {
+    if (oldCode && oldCode !== clean){
+      await fetch(`${dbUrl()}/rooms/_codes/${oldCode}.json`, { method: 'DELETE' }).catch(() => {});
+    }
+    await fetch(`${dbUrl()}/rooms/_codes/${clean}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: rName, path: p, code: clean })
+    });
+    updateCloudIndex(rName, getRoomCountersCount(rName), Date.now(), clean);
+  } catch (err){
+    console.warn('Erro ao atualizar código no banco:', err);
+  }
 }
 
 async function loadAdminProfilesList(){
@@ -2675,10 +3865,10 @@ async function loadAdminProfilesList(){
     profiles.forEach(p => {
       const card = document.createElement('div');
       const isCur = p.name.toLowerCase() === current;
-      card.className = 'admin-profile-card' + (isCur ? ' active' : '');
+      const isGuildProf = p.isGuild || p.name.toLowerCase() === 'cd8' || p.name.toLowerCase() === getActiveGuildSlug();
       const count = p.count !== undefined ? p.count : 0;
       const dateStr = p.updated ? new Date(p.updated).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' }) : 'Recentemente';
-      const pCode = p.code || getOrGenerateRoomCode(p.name);
+      const pCode = isGuildProf ? '••••' : (p.code || getOrGenerateRoomCode(p.name));
 
       card.innerHTML = `
         <div class="admin-profile-info">
@@ -2694,6 +3884,7 @@ async function loadAdminProfilesList(){
         <div class="admin-profile-actions">
           <button class="btn btn-gold btn-sm btn-admin-open" type="button" title="Abrir e editar este perfil">Abrir</button>
           <button class="btn btn-ghost btn-sm btn-admin-ren" type="button" title="Renomear este perfil (sem duplicar)">✏️</button>
+          <button class="btn btn-ghost btn-sm btn-admin-code" type="button" title="Alterar código de 4 números deste usuário">🔢</button>
           <button class="btn btn-ghost btn-sm btn-danger btn-admin-del" type="button" title="Excluir este perfil da nuvem">🗑</button>
         </div>
       `;
@@ -2709,6 +3900,36 @@ async function loadAdminProfilesList(){
         if (!newName || newName.trim() === p.name) return;
         const ok = await renameProfile(p.name, newName.trim());
         if (ok) loadAdminProfilesList();
+      });
+
+      card.querySelector('.btn-admin-code').addEventListener('click', async () => {
+        const isGuildProf = p.isGuild || p.name.toLowerCase() === 'cd8' || p.name.toLowerCase() === getActiveGuildSlug();
+        const curCode = isGuildProf ? '' : (p.code || getOrGenerateRoomCode(p.name));
+        const newCode = prompt(`Novo código de 4 números para "${p.name}":`, curCode);
+        if (!newCode || newCode.trim() === curCode) return;
+        const cleanCode = newCode.trim();
+        if (!/^\d{4}$/.test(cleanCode)){
+          toast('O código deve conter exatamente 4 números (ex: 1234)');
+          return;
+        }
+
+        try {
+          const res = await fetch(`${dbUrl()}/rooms/_codes/${cleanCode}.json`);
+          if (res.ok){
+            const data = await res.json();
+            if (data && data.name && data.name.toLowerCase() !== p.name.toLowerCase()){
+              toast(`✕ O código #${cleanCode} já está em uso por "${data.name}"!`);
+              return;
+            }
+          }
+        } catch {}
+
+        await setRoomCode(p.name, cleanCode);
+        toast(`✔ Código de "${p.name}" alterado para #${cleanCode}!`);
+        loadAdminProfilesList();
+        if (roomName().toLowerCase() === p.name.toLowerCase()){
+          updateBrandRoomPill();
+        }
       });
 
       card.querySelector('.btn-admin-del').addEventListener('click', async () => {
@@ -2758,7 +3979,7 @@ function importJSON(file){
       const data = JSON.parse(r.result);
       if (!Array.isArray(data)) throw 0;
       const known = new Set(entries.map(e => e.id));
-      const add = data.filter(e => e && e.def && e.atk && !known.has(e.id)).map(fixEntry);
+      const add = data.filter(e => isValidEntry(e) && !known.has(e.id)).map(fixEntry);
       entries = [...add, ...entries];
       persist();
       renderList();
@@ -2881,6 +4102,14 @@ function openReg(){
 }
 
 function openEdit(id){
+  const currentGuildSlug = getActiveGuildSlug();
+  const currentGuildName = getActiveGuildName();
+  const isGuildRoom = (roomName() || '').toLowerCase() === currentGuildSlug || (roomName() || '').toLowerCase() === 'cd8';
+  const isLeader = isGuildLeader(currentGuildSlug);
+  if (isGuildRoom && !isLeader){
+    toast(`⚠️ Apenas o líder da guilda ${currentGuildName} pode editar os decks da guilda`);
+    return;
+  }
   const e = entries.find(x => x.id === id);
   if (!e) return;
   editing = id;
@@ -2922,6 +4151,9 @@ $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeP
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (picking) closePicker();
+  else if ($('#copyToTargetModal') && !$('#copyToTargetModal').hidden) closeCopyToTargetModal();
+  else if ($('#createGuildModal') && !$('#createGuildModal').hidden) closeCreateGuildModal();
+  else if ($('#updateNotesModal') && !$('#updateNotesModal').hidden) closeUpdateNotesModal();
   else if ($('#copyModal') && !$('#copyModal').hidden) closeCopyModal();
   else if ($('#adminModal') && !$('#adminModal').hidden) closeAdminModal();
   else if (!$('#syncModal').hidden) closeSync();
@@ -2979,22 +4211,33 @@ $('#fileImport').addEventListener('change', e => {
   if (e.target.files[0]) importJSON(e.target.files[0]);
   e.target.value = '';
 });
-$('#btnClearAll').addEventListener('click', async () => {
-  const rName = roomName() || 'Modo Local';
-  if (!entries.length) return toast(`A lista de "${rName}" já está vazia`);
-  if (confirm(`Apagar todos os ${entries.length} counters do perfil "${rName}"? Isso não afetará outros perfis.`)){
-    entries = [];
-    persist(true);
-    if (cloudOn() && roomName()){
-      cloudAuto(true);
+const btnClearAll = $('#btnClearAll');
+if (btnClearAll){
+  btnClearAll.addEventListener('click', async () => {
+    const rName = roomName() || 'Modo Local';
+    const currentGuildSlug = getActiveGuildSlug();
+    const currentGuildName = getActiveGuildName();
+    const isGuildRoom = currentGuildSlug && (rName.toLowerCase() === currentGuildSlug || rName.toLowerCase() === 'cd8');
+    const isLeader = isGuildLeader(currentGuildSlug);
+    if (isGuildRoom && !isLeader){
+      toast(`⚠️ Apenas o líder pode limpar os counters da guilda ${currentGuildName}`);
+      return;
     }
-    renderList();
-    renderQuery();
-    renderRoomsSelect();
-    updateBrandRoomPill();
-    toast(`Counters de "${rName}" foram apagados`);
-  }
-});
+    if (!entries.length) return toast(`A lista de "${rName}" já está vazia`);
+    if (confirm(`Apagar todos os ${entries.length} counters do perfil "${rName}"? Isso não afetará outros perfis.`)){
+      entries = [];
+      persist(true);
+      if (cloudOn() && roomName()){
+        cloudAuto(true);
+      }
+      renderList();
+      renderQuery();
+      renderRoomsSelect();
+      updateBrandRoomPill();
+      toast(`Counters de "${rName}" foram apagados`);
+    }
+  });
+}
 const btnForget = $('#btnForgetRoom');
 if (btnForget){
   btnForget.addEventListener('click', () => {
@@ -3030,6 +4273,10 @@ async function handleFirstNickSubmit(){
 
   updateBrandNickPill();
   toast(`✔ Bem-vindo, ${nick}!`);
+
+  if (localStorage.getItem('siege_update_v15_seen') !== '1'){
+    setTimeout(showUpdateNotesModal, 400);
+  }
 }
 
 if (btnConfirmFirstNick){
@@ -3084,12 +4331,21 @@ $('#btnQClear').addEventListener('click', () => {
 });
 
 /* ---------- init ---------- */
+const initGuildSlug = getActiveGuildSlug();
+const curInit = (roomName() || '').toLowerCase();
+if (curInit && ((initGuildSlug && curInit === initGuildSlug) || curInit === 'cd8') && !isGuildUnlocked(curInit)){
+  const nick = userNick() || '';
+  localStorage.setItem(ROOM_KEY, nick);
+}
+
 renderSlots();
 renderQuery();
 renderList();
 renderRoomsSelect();
 updateBrandRoomPill();
 updateBrandNickPill();
+updateSwitcherState();
+updateGuildMenuUI();
 
 // Verifica se o usuário já tem um nick cadastrado
 if (!userNick()){
@@ -3107,6 +4363,9 @@ if (!userNick()){
   if (roomName()){
     registerUserInRoom(userNick(), roomName());
     cloudLoad(true);
+  }
+  if (localStorage.getItem('siege_update_v15_seen') !== '1'){
+    setTimeout(showUpdateNotesModal, 450);
   }
 }
 
@@ -3146,5 +4405,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c1e3d8ea4537a6',t:'MTc4OTU4Mjg3Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c28aa60ec16296',t:'MTc4OTU4OTcwOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
