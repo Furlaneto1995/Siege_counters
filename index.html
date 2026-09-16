@@ -933,15 +933,6 @@ img {
     </div>
 
     <div class="modal-body">
-      <!-- Identificação do Jogador (Nick fixo) -->
-      <label class="field">
-        <span>Seu Nick / Nome de jogador</span>
-        <div class="user-nick-locked">
-          <span class="nick-badge">👤 <b id="displayUserNick">Jogador</b></span>
-          <span class="nick-lock-tag" title="O nick é fixo após a criação para proteger seu perfil">🔒 Fixo</span>
-        </div>
-      </label>
-
       <!-- Perfil ativo -->
       <label class="field">
         <span>Perfil ativo</span>
@@ -953,9 +944,18 @@ img {
 
       <div class="sync-status" id="syncStatus">Conectado ao banco de dados na nuvem.</div>
 
-      <details class="sync-adv">
+      <details class="sync-adv" open>
         <summary>Backup e restauração</summary>
         <div style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
+          <!-- Copiar de outro código -->
+          <label class="field" style="margin:0;">
+            <span>Copiar de:</span>
+            <div class="room-input-group">
+              <input type="text" id="inpCopyFrom" placeholder="Código de origem (ex: cd8)" autocomplete="off" spellcheck="false">
+              <button class="btn btn-gold btn-sm" id="btnCopyFrom" type="button" title="Copiar counters deste código para o perfil atual">Copiar</button>
+            </div>
+          </label>
+
           <div class="sync-actions" style="margin-top:2px;">
             <button class="btn btn-ghost btn-sm" id="btnExport" type="button">⬇ Exportar JSON</button>
             <button class="btn btn-ghost btn-sm" id="btnImport" type="button">⬆ Importar JSON</button>
@@ -1979,12 +1979,37 @@ async function renameProfile(oldName, newName){
 
 /* ---------- modal de sincronização ---------- */
 function openSync(){
+  const inpCopy = $('#inpCopyFrom');
+  if (inpCopy) inpCopy.value = '';
   syncRefresh();
   updateBrandNickPill();
   updateBrandRoomPill();
   $('#syncModal').hidden = false;
 }
 function closeSync(){ $('#syncModal').hidden = true; }
+
+/* ---------- copiar de outro código no modal do usuário ---------- */
+async function applyCopyFrom(){
+  const val = ($('#inpCopyFrom').value || '').trim();
+  if (!val){
+    toast('Digite o código de onde deseja copiar (ex: cd8)');
+    return;
+  }
+  await copyCountersFrom(val);
+  const inpCopy = $('#inpCopyFrom');
+  if (inpCopy) inpCopy.value = '';
+}
+const btnCopy = $('#btnCopyFrom');
+if (btnCopy) btnCopy.addEventListener('click', applyCopyFrom);
+const inpCopy = $('#inpCopyFrom');
+if (inpCopy){
+  inpCopy.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      applyCopyFrom();
+    }
+  });
+}
 
 /* ---------- clique normal e clique longo na bandeira (Admin) ---------- */
 let pressTimer = null;
@@ -2654,5 +2679,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c1c37f5f88228d',t:'MTc4OTU4MTU1Mg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
