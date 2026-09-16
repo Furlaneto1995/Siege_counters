@@ -647,6 +647,19 @@ h1,h2,h3{margin:0}
 /* ===== modal sincronizar ===== */
 .modal-sync{width:min(480px,100%)}
 .modal-sync .modal-body{display:flex;flex-direction:column;gap:13px}
+.user-nick-locked{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;border-radius:6px;
+  background:rgba(0,0,0,.35);border:1px solid rgba(140,105,50,.35);
+}
+.nick-badge{
+  font-size:13.5px;color:var(--gold);font-weight:900;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.nick-lock-tag{
+  font-size:11px;color:#a98d63;background:rgba(255,255,255,.06);
+  padding:2px 8px;border-radius:10px;border:1px solid rgba(140,105,50,.25);
+}
 .room-input-group{display:flex;gap:7px;align-items:center}
 .room-input-group input{flex:1;min-width:0}
 .sync-hint{margin:0;font-size:12px;color:#9c8055;line-height:1.5}
@@ -735,19 +748,8 @@ img {
     <div class="brand">
       <button class="brand-icon" id="brandBtn" type="button"
         aria-label="Sincronização e menu" title="Sincronização e menu"></button>
-      <div>
-        <div class="brand-title-row">
-          <h1>Siege Counters</h1>
-          <button class="room-pill" id="brandRoomPill" type="button" title="Perfil ativo. Clique para gerenciar">
-            <span>🏰</span>
-            <span id="brandRoomName">Sem perfil</span>
-            <span class="room-pill-count" id="brandRoomCount">0</span>
-          </button>
-          <button class="room-pill" id="brandNickPill" type="button" title="Seu Nick de jogador. Clique para alterar">
-            <span>👤</span>
-            <span id="brandNickName">Jogador</span>
-          </button>
-        </div>
+      <div class="brand-title-row">
+        <h1>Siege Counters</h1>
       </div>
     </div>
     <div class="topbar-actions">
@@ -931,19 +933,22 @@ img {
     </div>
 
     <div class="modal-body">
-      <!-- Identificação do Jogador (Nick) -->
+      <!-- Identificação do Jogador (Nick fixo) -->
       <label class="field">
         <span>Seu Nick / Nome de jogador</span>
-        <div class="room-input-group">
-          <input type="text" id="inpUserNickEdit" placeholder="Seu apelido no jogo" autocomplete="off" spellcheck="false">
-          <button class="btn btn-ghost btn-sm" id="btnSaveNickEdit" type="button">Salvar Nick</button>
+        <div class="user-nick-locked">
+          <span class="nick-badge">👤 <b id="displayUserNick">Jogador</b></span>
+          <span class="nick-lock-tag" title="O nick é fixo após a criação para proteger seu perfil">🔒 Fixo</span>
         </div>
       </label>
 
-      <!-- Alterar perfil -->
+      <!-- Perfil ativo -->
       <label class="field">
-        <span>Alterar perfil</span>
-        <select id="selRooms"></select>
+        <span>Perfil ativo</span>
+        <div class="user-nick-locked">
+          <span class="nick-badge">🏰 <b id="displayActiveRoom">Sem perfil</b></span>
+          <span class="nick-lock-tag" id="displayActiveRoomCount">0 counters</span>
+        </div>
       </label>
 
       <div class="sync-status" id="syncStatus">Conectado ao banco de dados na nuvem.</div>
@@ -951,15 +956,6 @@ img {
       <details class="sync-adv">
         <summary>Backup e restauração</summary>
         <div style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
-          <!-- Copiar de outro código -->
-          <label class="field" style="margin:0;">
-            <span>Copiar de:</span>
-            <div class="room-input-group">
-              <input type="text" id="inpCopyFrom" placeholder="Código de origem (ex: cd8)" autocomplete="off" spellcheck="false">
-              <button class="btn btn-gold btn-sm" id="btnCopyFrom" type="button" title="Copiar counters deste código para o perfil atual">Copiar</button>
-            </div>
-          </label>
-
           <div class="sync-actions" style="margin-top:2px;">
             <button class="btn btn-ghost btn-sm" id="btnExport" type="button">⬇ Exportar JSON</button>
             <button class="btn btn-ghost btn-sm" id="btnImport" type="button">⬆ Importar JSON</button>
@@ -973,7 +969,6 @@ img {
         <summary>Zona de perigo</summary>
         <div class="sync-actions" style="margin-top:9px">
           <button class="btn btn-ghost btn-sm btn-danger" id="btnClearAll" type="button">🗑 Limpar counters deste perfil</button>
-          <button class="btn btn-ghost btn-sm" id="btnForgetRoom" type="button">✕ Esquecer este perfil</button>
         </div>
       </details>
     </div>
@@ -997,10 +992,19 @@ img {
     <div class="modal-body" style="gap:13px;">
       <!-- Importar perfil (Exclusivo Admin) -->
       <label class="field">
-        <span>Importar perfil</span>
+        <span>Importar / Abrir perfil</span>
         <div class="room-input-group">
           <input type="text" id="inpAdminRoom" placeholder="Nome do perfil ou código (ex: cd8)" autocomplete="off" spellcheck="false">
-          <button class="btn btn-gold btn-sm" id="btnAdminApplyRoom" type="button" title="Importar e abrir este perfil no app">Importar</button>
+          <button class="btn btn-gold btn-sm" id="btnAdminApplyRoom" type="button" title="Importar e abrir este perfil no app">Abrir</button>
+        </div>
+      </label>
+
+      <!-- Copiar counters de outro código para o perfil ativo (Exclusivo Admin) -->
+      <label class="field" style="margin:0;">
+        <span>Copiar counters de outro código para o perfil ativo:</span>
+        <div class="room-input-group">
+          <input type="text" id="inpAdminCopyFrom" placeholder="Código de origem (ex: cd8)" autocomplete="off" spellcheck="false">
+          <button class="btn btn-gold btn-sm" id="btnAdminCopyFrom" type="button" title="Copiar counters deste código para o perfil atual">Copiar</button>
         </div>
       </label>
 
@@ -1094,6 +1098,8 @@ function updateBrandNickPill(){
   const el = $('#brandNickName');
   const nick = userNick();
   if (el) el.textContent = nick || 'Definir nick';
+  const disp = $('#displayUserNick');
+  if (disp) disp.textContent = nick || 'Não definido';
 }
 
 function updateCloudIndex(rName, count, ts){
@@ -1847,6 +1853,11 @@ function updateBrandRoomPill(){
   const r = roomName();
   if (nameEl) nameEl.textContent = r || 'Sem perfil';
   if (countEl) countEl.textContent = entries.length;
+
+  const dispRoom = $('#displayActiveRoom');
+  const dispCount = $('#displayActiveRoomCount');
+  if (dispRoom) dispRoom.textContent = r || 'Sem perfil';
+  if (dispCount) dispCount.textContent = `${entries.length} counter${entries.length !== 1 ? 's' : ''}`;
 }
 
 // salva na nuvem em segundo plano após cada alteração (se configurado)
@@ -1879,14 +1890,98 @@ function cloudAuto(immediate = false){
   }
 }
 
+/* ---------- renomear perfil (sem duplicar na nuvem) ---------- */
+async function renameProfile(oldName, newName){
+  const oldR = (oldName || '').trim();
+  const newR = (newName || '').trim();
+  if (!oldR || !newR || oldR.toLowerCase() === newR.toLowerCase()){
+    toast('Nenhum nome novo informado');
+    return false;
+  }
+  const oldP = roomPath(oldR);
+  const newP = roomPath(newR);
+
+  // Impede colisão com perfil já existente na nuvem
+  try {
+    const checkRes = await fetch(`${dbUrl()}/rooms/${newP}.json`);
+    if (checkRes.ok){
+      const checkData = await checkRes.json();
+      if (checkData !== null){
+        toast(`✕ Já existe um perfil com o nome "${newR}" na nuvem!`);
+        return false;
+      }
+    }
+  } catch {}
+
+  try {
+    let profileData = null;
+    try {
+      const res = await fetch(`${dbUrl()}/rooms/${oldP}.json`);
+      if (res.ok) profileData = await res.json();
+    } catch {}
+
+    if (!profileData){
+      const local = loadForRoom(oldP);
+      profileData = { updated: Date.now(), entries: local };
+    }
+
+    const entriesToSave = extractEntries(profileData);
+    const ts = Date.now();
+
+    // Salva no novo caminho da nuvem
+    await fetch(`${dbUrl()}/rooms/${newP}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updated: ts, entries: entriesToSave })
+    });
+    updateCloudIndex(newR, entriesToSave.length, ts);
+
+    // Exclui o caminho antigo da nuvem (renomeação limpa, sem criar perfil duplicado)
+    await fetch(`${dbUrl()}/rooms/${oldP}.json`, { method: 'DELETE' });
+    await fetch(`${dbUrl()}/rooms/_index/${oldP}.json`, { method: 'DELETE' });
+
+    // Atualiza armazenamento local
+    try {
+      localStorage.setItem(roomStoreKey(newP), JSON.stringify(entriesToSave));
+      localStorage.removeItem(roomStoreKey(oldP));
+      localStorage.removeItem(roomBackupKey(oldP));
+    } catch {}
+
+    // Atualiza lista de perfis rápidos
+    removeKnownRoom(oldR);
+    addKnownRoom(newR);
+
+    // Se for o perfil atualmente ativo, atualiza
+    if (roomName().toLowerCase() === oldR.toLowerCase()){
+      localStorage.setItem(ROOM_KEY, newR);
+      if (userNick().toLowerCase() === oldR.toLowerCase()){
+        localStorage.setItem(USER_NICK_KEY, newR);
+        saveUserNickToDb(newR);
+      }
+      entries = entriesToSave;
+      persist(false);
+      renderList();
+      renderQuery();
+      syncRefresh();
+      renderRoomsSelect();
+      updateBrandRoomPill();
+      updateBrandNickPill();
+    }
+
+    toast(`✔ Perfil renomeado para "${newR}"!`);
+    return true;
+  } catch (err){
+    console.error('Erro ao renomear perfil:', err);
+    toast('✕ Erro ao renomear perfil');
+    return false;
+  }
+}
+
 /* ---------- modal de sincronização ---------- */
 function openSync(){
-  renderRoomsSelect();
-  const inpNick = $('#inpUserNickEdit');
-  if (inpNick) inpNick.value = userNick();
-  const inpCopy = $('#inpCopyFrom');
-  if (inpCopy) inpCopy.value = '';
   syncRefresh();
+  updateBrandNickPill();
+  updateBrandRoomPill();
   $('#syncModal').hidden = false;
 }
 function closeSync(){ $('#syncModal').hidden = true; }
@@ -1950,80 +2045,26 @@ if (brandBtn){
   });
 }
 
-const pillBtn = $('#brandRoomPill');
-if (pillBtn) pillBtn.addEventListener('click', openSync);
-
-const nickPill = $('#brandNickPill');
-if (nickPill){
-  nickPill.addEventListener('click', () => {
-    openSync();
-    setTimeout(() => {
-      const inp = $('#inpUserNickEdit');
-      if (inp){
-        if (typeof inp.focus === 'function') inp.focus();
-        if (typeof inp.select === 'function') inp.select();
-      }
-    }, 120);
-  });
-}
-
 $('#syncClose').addEventListener('click', closeSync);
 $('#syncModal').addEventListener('click', e => { if (e.target.id === 'syncModal') closeSync(); });
 
-async function saveNickFromModal(){
-  const val = ($('#inpUserNickEdit').value || '').trim();
+async function applyAdminCopyFrom(){
+  const val = ($('#inpAdminCopyFrom').value || '').trim();
   if (!val){
-    toast('Digite um nick válido');
-    return;
-  }
-  localStorage.setItem(USER_NICK_KEY, val);
-  saveUserNickToDb(val);
-  
-  // Ao mudar o nick, muda automaticamente o perfil ativo para o novo nick!
-  await switchRoom(val, true, true);
-
-  updateBrandNickPill();
-  toast('✔ Nick e perfil atualizados: ' + val);
-}
-const btnSaveNick = $('#btnSaveNickEdit');
-if (btnSaveNick) btnSaveNick.addEventListener('click', saveNickFromModal);
-const inpNickEdit = $('#inpUserNickEdit');
-if (inpNickEdit){
-  inpNickEdit.addEventListener('keydown', e => {
-    if (e.key === 'Enter'){
-      e.preventDefault();
-      saveNickFromModal();
-    }
-  });
-}
-
-async function applyCopyFrom(){
-  const val = ($('#inpCopyFrom').value || '').trim();
-  if (!val){
-    toast('Digite o código de onde deseja copiar');
+    toast('Digite o código ou perfil de onde deseja copiar');
     return;
   }
   await copyCountersFrom(val);
+  loadAdminProfilesList();
 }
-const btnCopy = $('#btnCopyFrom');
-if (btnCopy) btnCopy.addEventListener('click', applyCopyFrom);
-const inpCopy = $('#inpCopyFrom');
-if (inpCopy){
-  inpCopy.addEventListener('keydown', e => {
+const btnAdminCopy = $('#btnAdminCopyFrom');
+if (btnAdminCopy) btnAdminCopy.addEventListener('click', applyAdminCopyFrom);
+const inpAdminCopy = $('#inpAdminCopyFrom');
+if (inpAdminCopy){
+  inpAdminCopy.addEventListener('keydown', e => {
     if (e.key === 'Enter'){
       e.preventDefault();
-      applyCopyFrom();
-    }
-  });
-}
-
-const selRooms = $('#selRooms');
-if (selRooms){
-  selRooms.addEventListener('change', async e => {
-    const val = e.target.value;
-    if (val){
-      await switchRoom(val, true);
-      closeSync();
+      applyAdminCopyFrom();
     }
   });
 }
@@ -2161,6 +2202,7 @@ async function loadAdminProfilesList(){
         </div>
         <div class="admin-profile-actions">
           <button class="btn btn-gold btn-sm btn-admin-open" type="button" title="Abrir e editar este perfil">Abrir</button>
+          <button class="btn btn-ghost btn-sm btn-admin-ren" type="button" title="Renomear este perfil (sem duplicar)">✏️</button>
           <button class="btn btn-ghost btn-sm btn-danger btn-admin-del" type="button" title="Excluir este perfil da nuvem">🗑</button>
         </div>
       `;
@@ -2169,6 +2211,13 @@ async function loadAdminProfilesList(){
         await switchRoom(p.name, true);
         closeAdminModal();
         toast(`✔ Perfil "${p.name}" aberto como ativo para edição!`);
+      });
+
+      card.querySelector('.btn-admin-ren').addEventListener('click', async () => {
+        const newName = prompt(`Novo nome para o perfil "${p.name}":`, p.name);
+        if (!newName || newName.trim() === p.name) return;
+        const ok = await renameProfile(p.name, newName.trim());
+        if (ok) loadAdminProfilesList();
       });
 
       card.querySelector('.btn-admin-del').addEventListener('click', async () => {
