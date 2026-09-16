@@ -99,7 +99,7 @@ h1,h2,h3{margin:0}
 .btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.6)}
 
 /* ---------- layout ---------- */
-.wrap{max-width:1180px;margin:0 auto;padding:22px 18px;display:flex;flex-direction:column;gap:20px}
+.wrap{max-width:1180px;margin:0 auto;padding:12px 18px 30px;display:flex;flex-direction:column;gap:14px}
 .panel{
   border-radius:8px;padding:18px;
   background:linear-gradient(180deg,rgba(74,53,37,.5),rgba(24,16,11,.94));
@@ -444,12 +444,13 @@ h1,h2,h3{margin:0}
 /* ===== busca por defesa (reverse lookup — fixo no topo e compacto) ===== */
 .panel-search{
   position:sticky;
-  top:var(--topbar-h,68px);
+  top:calc(var(--topbar-h, 68px) + 10px);
   z-index:30;
-  padding:7px 14px;
+  padding:8px 14px;
   background:linear-gradient(180deg,#2e1f16,#17100b);
   border:1px solid rgba(140,105,50,.65);
-  box-shadow:0 6px 18px rgba(0,0,0,.7);
+  border-radius:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.75);
 }
 .panel-search .search-row{
   display:flex;
@@ -509,6 +510,28 @@ h1,h2,h3{margin:0}
   bottom:10px;
   right:1px;
 }
+.search-filter-wrap{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:1;
+  min-width:180px;
+  max-width:280px;
+}
+.search-filter-wrap input{
+  width:100%;
+  padding:6px 11px;
+  border-radius:5px;
+  font-size:12.5px;
+  background:#150e09;
+  border:1px solid var(--line);
+  color:var(--cream);
+  outline:none;
+  transition:border-color .15s;
+}
+.search-filter-wrap input:focus{
+  border-color:var(--gold2);
+}
 .search-actions{
   display:flex;
   align-items:center;
@@ -552,7 +575,7 @@ h1,h2,h3{margin:0}
 .card-tags{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 
 @media (max-width:768px){
-  .panel-search{padding:6px 10px}
+  .panel-search{padding:8px 10px;top:calc(var(--topbar-h,60px) + 8px)}
   .panel-search .search-row{gap:8px}
   .search-brand h2{font-size:13.5px}
   .slots-search{grid-template-columns:repeat(3,40px);gap:5px}
@@ -561,14 +584,21 @@ h1,h2,h3{margin:0}
   .slots-search .slot .slot-name{font-size:7px}
   .slots-search .slot .slot-el{width:13px;height:13px}
   .slots-search .slot .slot-x{width:14px;height:14px;font-size:9px}
+  .search-filter-wrap{min-width:140px;max-width:100%}
   .q-status{font-size:11.5px}
 }
 @media (max-width:540px){
   .panel-search .search-row{
-    justify-content:center;
+    justify-content:space-between;
+  }
+  .search-filter-wrap{
+    width:100%;
+    order:3;
+    max-width:100%;
   }
   .search-actions{
     width:100%;
+    order:4;
     justify-content:space-between;
   }
 }
@@ -577,6 +607,16 @@ h1,h2,h3{margin:0}
 .modal-sync{width:min(480px,100%)}
 .modal-sync .modal-body{display:flex;flex-direction:column;gap:13px}
 .sync-hint{margin:0;font-size:12px;color:#9c8055;line-height:1.5}
+.sync-danger summary{color:#f0a5a5}
+.btn-danger{
+  color:#f0a5a5!important;
+  border-color:rgba(180,60,50,.55)!important;
+  background:linear-gradient(rgba(140,50,45,.25),rgba(40,15,12,.5))!important;
+}
+.btn-danger:hover{
+  background:rgba(180,50,45,.45)!important;
+  color:#fff!important;
+}
 .sync-status{
   padding:9px 12px;border-radius:5px;font-size:12.5px;
   background:rgba(0,0,0,.3);border:1px solid rgba(120,88,50,.4);color:#bda17a;
@@ -642,12 +682,19 @@ img {
 <main class="wrap">
 
   <!-- ============ BUSCA POR DEFESA (FIXO NO TOPO) ============ -->
-  <section class="panel panel-search">
+  <section class="panel panel-search" id="panelSearch">
     <div class="search-row">
       <div class="search-brand">
         <h2>🔍 Buscar counter</h2>
+        <span class="badge" id="listCount" title="Total de counters salvos">0</span>
       </div>
+
       <div class="slots slots-search" id="qSlots"></div>
+
+      <div class="search-filter-wrap">
+        <input type="search" id="inpFilter" placeholder="🔎 Filtrar por monstro..." autocomplete="off">
+      </div>
+
       <div class="search-actions">
         <span class="q-status" id="qStatus">Escolha até 3 monstros da defesa inimiga</span>
         <button class="btn btn-ghost btn-sm" id="btnQClear" type="button">Limpar busca</button>
@@ -660,14 +707,8 @@ img {
     <div id="qResults" class="q-results"></div>
   </section>
 
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Counters salvos <span class="badge" id="listCount">0</span></h2>
-      <div class="filters">
-        <input type="search" id="inpFilter" placeholder="🔎 Filtrar por monstro...">
-        <button class="btn btn-ghost btn-sm" id="btnClearAll" type="button">Limpar tudo</button>
-      </div>
-    </div>
+  <!-- ============ LISTA DE COUNTERS ============ -->
+  <section id="savedSection">
     <div class="list-head" id="listHead">
       <span class="lh-def">🛡️ DEFESA</span>
       <span class="lh-atk">⚔️ ATAQUE</span>
@@ -820,6 +861,16 @@ img {
           <input type="file" id="fileImport" accept="application/json" hidden>
         </div>
       </details>
+
+      <details class="sync-adv sync-danger">
+        <summary>Zona de perigo</summary>
+        <div class="sync-actions" style="margin-top:9px">
+          <button class="btn btn-ghost btn-sm btn-danger" id="btnClearAll" type="button">🗑 Limpar todos os counters</button>
+        </div>
+        <p class="sync-hint" style="margin-top:7px;color:#d98880">
+          Apaga todos os counters deste aparelho (e também na nuvem da guilda, se configurada).
+        </p>
+      </details>
     </div>
   </div>
 </div>
@@ -893,13 +944,22 @@ function fixEntry(e){
   return { ...e, def: (e.def || []).map(fixId), atk: (e.atk || []).map(fixId) };
 }
 
+const UPDATED_KEY = 'sw_siege_updated';
+function getLastUpdated(){
+  return Number(localStorage.getItem(UPDATED_KEY)) || 0;
+}
+function setLastUpdated(ts){
+  localStorage.setItem(UPDATED_KEY, String(ts || Date.now()));
+}
+
 function load(){
   try { return (JSON.parse(localStorage.getItem(STORE)) || []).map(fixEntry); }
   catch { return []; }
 }
-function persist(){
+function persist(syncCloud = true){
   localStorage.setItem(STORE, JSON.stringify(entries));
-  if (typeof cloudAuto === 'function') cloudAuto();   // envia para a nuvem, se ativa
+  setLastUpdated(Date.now());
+  if (syncCloud && typeof cloudAuto === 'function') cloudAuto();   // envia para a nuvem, se ativa
 }
 
 /* ---------- toast ---------- */
@@ -1136,7 +1196,8 @@ function cardEl(e, opts){
 }
 
 function renderList(){
-  const q = norm($('#inpFilter').value.trim());
+  const filterInput = $('#inpFilter');
+  const q = norm(filterInput ? filterInput.value.trim() : '');
   const shown = entries.filter(e => {
     if (!q) return true;
     return [...(e.def||[]), ...(e.atk||[])].some(id => {
@@ -1145,17 +1206,27 @@ function renderList(){
     });
   });
 
-  $('#listCount').textContent = entries.length;
-  $('#empty').style.display = shown.length ? 'none' : 'block';
-  if (!shown.length && q){
-    $('#empty').querySelector('p').textContent = 'Nenhum counter bate com esse filtro.';
-  } else if (!shown.length){
-    $('#empty').querySelector('p').textContent = 'Nenhum counter registrado ainda.';
+  const countEl = $('#listCount');
+  if (countEl) countEl.textContent = entries.length;
+
+  const emptyEl = $('#empty');
+  if (emptyEl){
+    emptyEl.style.display = shown.length ? 'none' : 'block';
+    const p = emptyEl.querySelector('p');
+    if (p){
+      if (!shown.length && q){
+        p.textContent = 'Nenhum counter bate com esse filtro.';
+      } else if (!shown.length){
+        p.textContent = 'Nenhum counter registrado ainda.';
+      }
+    }
   }
 
   const host = $('#list');
-  host.innerHTML = '';
-  for (const e of shown) host.appendChild(cardEl(e));
+  if (host){
+    host.innerHTML = '';
+    for (const e of shown) host.appendChild(cardEl(e));
+  }
 }
 
 /* ================= NUVEM (Firebase Realtime Database) =================
@@ -1206,10 +1277,12 @@ async function cloudSave(){
   localStorage.setItem(ROOM_KEY, roomName());
   syncMsg('Enviando...', 'busy');
   try {
+    const ts = Date.now();
+    setLastUpdated(ts);
     const res = await fetch(`${dbUrl()}/rooms/${roomPath()}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ updated: Date.now(), entries }),
+      body: JSON.stringify({ updated: ts, entries }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     syncMsg(`✔ ${entries.length} counter(s) salvos na nuvem.`, 'ok');
@@ -1231,25 +1304,28 @@ async function cloudLoad(silent = false){
     const res = await fetch(`${dbUrl()}/rooms/${roomPath()}.json`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    const remotos = ((data && data.entries) || []).map(fixEntry);
-    if (!remotos.length){
+    if (!data){
       syncMsg('Nada salvo nessa guilda ainda.', 'err');
       if (!silent) toast('Nuvem vazia');
       return;
     }
-    // mescla por id: atualiza com os dados da nuvem e inclui novos
-    const aqui = new Map(entries.map(e => [e.id, e]));
-    let novos = 0;
-    for (const e of remotos){
-      if (!aqui.has(e.id)) novos++;
-      aqui.set(e.id, e);
+    const remotos = (Array.isArray(data.entries) ? data.entries : []).map(fixEntry);
+    const remoteUpdated = Number(data.updated) || 0;
+    const localUpdated  = getLastUpdated();
+
+    // Se é sincronização automática em segundo plano e os dados locais são mais recentes ou iguais, não sobrescreve
+    if (silent && remoteUpdated && localUpdated && remoteUpdated <= localUpdated){
+      return;
     }
-    entries = [...aqui.values()].sort((a, b) => b.id - a.id);
-    persist();
+
+    // Carregamento: a nuvem é a fonte da verdade, substitui a lista local
+    entries = remotos;
+    setLastUpdated(remoteUpdated || Date.now());
+    persist(false); // persiste sem re-disparar cloudAuto
     renderList();
     renderQuery();
-    syncMsg(`✔ ${novos} novo(s) · ${entries.length} no total.`, 'ok');
-    if (!silent) toast(`✔ ${entries.length} counter(s) atualizado(s)`);
+    syncMsg(`✔ ${entries.length} counter(s) carregados da nuvem.`, 'ok');
+    if (!silent) toast(`✔ ${entries.length} counter(s) carregado(s)`);
   } catch (err) {
     syncMsg('✕ Falha ao carregar: ' + err.message, 'err');
     if (!silent) toast('✕ Erro ao carregar');
@@ -1261,13 +1337,16 @@ let autoTimer;
 function cloudAuto(){
   if (!cloudOn() || !roomPath()) return;
   clearTimeout(autoTimer);
-  autoTimer = setTimeout(() => {
-    fetch(`${dbUrl()}/rooms/${roomPath()}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ updated: Date.now(), entries }),
-    }).catch(() => {});
-  }, 1200);
+  autoTimer = setTimeout(async () => {
+    try {
+      const ts = getLastUpdated() || Date.now();
+      await fetch(`${dbUrl()}/rooms/${roomPath()}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updated: ts, entries }),
+      });
+    } catch {}
+  }, 400);
 }
 
 /* ---------- modal de sincronização (long-press no brasão) ---------- */
@@ -1399,8 +1478,8 @@ function slotEl(id, onPick, onClear){
 
 function setBuscaAtiva(ativa){
   // durante a busca, a lista completa some para não competir com o resultado
-  const painel = $('#list').closest('.panel');
-  if (painel) painel.hidden = ativa;
+  const saved = $('#savedSection');
+  if (saved) saved.hidden = ativa;
   const qp = $('#qPanel');
   if (qp) qp.hidden = !ativa;
 }
@@ -1546,14 +1625,18 @@ $('#fileImport').addEventListener('change', e => {
   if (e.target.files[0]) importJSON(e.target.files[0]);
   e.target.value = '';
 });
-$('#btnClearAll').addEventListener('click', () => {
+$('#btnClearAll').addEventListener('click', async () => {
   if (!entries.length) return toast('A lista já está vazia');
   if (confirm(`Apagar todos os ${entries.length} counters? Isso não pode ser desfeito.`)){
     entries = [];
     persist();
     renderList();
     renderQuery();
-    toast('Lista limpa');
+    if (cloudOn() && roomPath()){
+      await cloudSave();
+    }
+    closeSync();
+    toast('Todos os counters foram apagados');
   }
 });
 
@@ -1589,6 +1672,11 @@ $('#btnQClear').addEventListener('click', () => {
   query = [null, null, null];
   saveQuery();
   renderQuery();
+  const filterInput = $('#inpFilter');
+  if (filterInput) {
+    filterInput.value = '';
+    renderList();
+  }
 });
 
 // a topbar muda de altura conforme a largura; o cabeçalho fixo acompanha
@@ -1619,8 +1707,19 @@ document.addEventListener('visibilitychange', () => {
 
 // Garante salvamento do estado em caso de encerramento do app/aba pelo SO
 window.addEventListener('pagehide', () => {
-  persist();
+  persist(false);
   saveQuery();
+  if (cloudOn() && roomPath()){
+    try {
+      const ts = getLastUpdated() || Date.now();
+      fetch(`${dbUrl()}/rooms/${roomPath()}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updated: ts, entries }),
+        keepalive: true
+      });
+    } catch {}
+  }
 });
 
 // atalho do manifest: ?novo=1 abre o formulário direto
@@ -1629,5 +1728,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2d267edcb451b29',t:'MTc4NzA3MTcwNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c00374cc22f28c',t:'MTc4OTU2MzIwMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2d267edcb451b29',t:'MTc4NzA3MTcwNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c04a659c1ff1f2',t:'MTc4OTU2NjEwNg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
