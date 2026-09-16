@@ -680,6 +680,30 @@ h1,h2,h3{margin:0}
 .sync-adv[open] summary::before{content:"▾ "}
 .sync-adv .sync-actions{margin-top:9px}
 
+/* ===== modal admin ===== */
+.modal-admin{width:min(520px,100%)}
+.admin-profiles-list{
+  display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;
+  padding-right:4px;margin-top:8px;
+}
+.admin-profile-card{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;border-radius:6px;background:rgba(20,12,7,.75);
+  border:1px solid rgba(140,105,50,.35);transition:border-color .15s;
+}
+.admin-profile-card:hover{border-color:var(--gold)}
+.admin-profile-card.active{
+  border-color:var(--gold);background:rgba(242,201,105,.08);
+}
+.admin-profile-info{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.admin-profile-title{
+  font-size:13.5px;font-weight:900;color:#fff;
+  display:flex;align-items:center;gap:6px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.admin-profile-meta{font-size:11px;color:#a98d63}
+.admin-profile-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+
 
 /* ===== Otimizações de Fluidez & 60fps ===== */
 .mon, .card, .slot {
@@ -714,9 +738,9 @@ img {
       <div>
         <div class="brand-title-row">
           <h1>Siege Counters</h1>
-          <button class="room-pill" id="brandRoomPill" type="button" title="Código ativo da guilda. Clique para gerenciar">
+          <button class="room-pill" id="brandRoomPill" type="button" title="Perfil ativo. Clique para gerenciar">
             <span>🏰</span>
-            <span id="brandRoomName">Sem código</span>
+            <span id="brandRoomName">Sem perfil</span>
             <span class="room-pill-count" id="brandRoomCount">0</span>
           </button>
           <button class="room-pill" id="brandNickPill" type="button" title="Seu Nick de jogador. Clique para alterar">
@@ -724,7 +748,6 @@ img {
             <span id="brandNickName">Jogador</span>
           </button>
         </div>
-        <p>Banco de counters para Cerco de Guilda</p>
       </div>
     </div>
     <div class="topbar-actions">
@@ -899,11 +922,11 @@ img {
   </div>
 </div>
 
-<!-- ============ MODAL: SINCRONIZAR (long-press no brasão) ============ -->
+<!-- ============ MODAL: SINCRONIZAR ============ -->
 <div class="modal-backdrop" id="syncModal" hidden>
   <div class="modal modal-sync">
     <div class="modal-head">
-      <h3>☁️ Sincronizar counters</h3>
+      <h3>☁️ Perfis e Sincronização</h3>
       <button class="modal-close" id="syncClose" type="button">✕</button>
     </div>
 
@@ -917,60 +940,78 @@ img {
         </div>
       </label>
 
-      <!-- Seletor de códigos salvos no aparelho -->
+      <!-- Alterar perfil -->
       <label class="field">
-        <span>Alternar entre códigos salvos no aparelho</span>
+        <span>Alterar perfil</span>
         <select id="selRooms"></select>
       </label>
 
-      <!-- Código ativo -->
-      <label class="field">
-        <span>Código da guilda ativo</span>
-        <div class="room-input-group">
-          <input type="text" id="inpRoom" placeholder="Ex: meu-cerco" autocomplete="off" spellcheck="false">
-          <button class="btn btn-gold btn-sm" id="btnApplyRoom" type="button" title="Abrir código da guilda e carregar da nuvem">Abrir</button>
-        </div>
-      </label>
-
-      <!-- Copiar de outro código -->
-      <label class="field">
-        <span>Copiar de:</span>
-        <div class="room-input-group">
-          <input type="text" id="inpCopyFrom" placeholder="Código de origem (ex: cd8)" autocomplete="off" spellcheck="false">
-          <button class="btn btn-gold btn-sm" id="btnCopyFrom" type="button" title="Copiar counters deste código para o código atual">Copiar</button>
-        </div>
-      </label>
-      <p class="sync-hint">
-        📋 <b>Copiar de:</b> adiciona os counters do código informado à sua lista atual, <b>sem substituir</b> os counters que você já tem.
-      </p>
-
-      <div class="sync-status" id="syncStatus">Conectado ao banco da guilda na nuvem.</div>
-
-      <div class="sync-actions">
-        <button class="btn btn-gold" id="btnCloudSave" type="button">⬆ Salvar este código na nuvem</button>
-        <button class="btn btn-ghost" id="btnCloudLoad" type="button">⬇ Carregar este código da nuvem</button>
-      </div>
+      <div class="sync-status" id="syncStatus">Conectado ao banco de dados na nuvem.</div>
 
       <details class="sync-adv">
         <summary>Backup e restauração</summary>
-        <div class="sync-actions">
-          <button class="btn btn-ghost btn-sm" id="btnExport" type="button">⬇ Exportar JSON</button>
-          <button class="btn btn-ghost btn-sm" id="btnImport" type="button">⬆ Importar JSON</button>
-          <button class="btn btn-ghost btn-sm" id="btnRestoreBkp" type="button" title="Restaura o último backup salvo neste navegador">↺ Restaurar backup local</button>
-          <input type="file" id="fileImport" accept="application/json" hidden>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
+          <!-- Copiar de outro código -->
+          <label class="field" style="margin:0;">
+            <span>Copiar de:</span>
+            <div class="room-input-group">
+              <input type="text" id="inpCopyFrom" placeholder="Código de origem (ex: cd8)" autocomplete="off" spellcheck="false">
+              <button class="btn btn-gold btn-sm" id="btnCopyFrom" type="button" title="Copiar counters deste código para o perfil atual">Copiar</button>
+            </div>
+          </label>
+
+          <div class="sync-actions" style="margin-top:2px;">
+            <button class="btn btn-ghost btn-sm" id="btnExport" type="button">⬇ Exportar JSON</button>
+            <button class="btn btn-ghost btn-sm" id="btnImport" type="button">⬆ Importar JSON</button>
+            <button class="btn btn-ghost btn-sm" id="btnRestoreBkp" type="button" title="Restaura o último backup salvo neste navegador">↺ Restaurar backup local</button>
+            <input type="file" id="fileImport" accept="application/json" hidden>
+          </div>
         </div>
       </details>
 
       <details class="sync-adv sync-danger">
         <summary>Zona de perigo</summary>
         <div class="sync-actions" style="margin-top:9px">
-          <button class="btn btn-ghost btn-sm btn-danger" id="btnClearAll" type="button">🗑 Limpar counters deste código</button>
-          <button class="btn btn-ghost btn-sm" id="btnForgetRoom" type="button">✕ Esquecer este código</button>
+          <button class="btn btn-ghost btn-sm btn-danger" id="btnClearAll" type="button">🗑 Limpar counters deste perfil</button>
+          <button class="btn btn-ghost btn-sm" id="btnForgetRoom" type="button">✕ Esquecer este perfil</button>
         </div>
-        <p class="sync-hint" style="margin-top:7px;color:#d98880">
-          "Limpar counters" apaga todos os times do código ativo atual. "Esquecer" apenas remove o código do seletor rápido deste aparelho.
-        </p>
       </details>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL SECRETO: ADMIN (clicar e segurar na bandeira) ============ -->
+<div class="modal-backdrop" id="adminModal" hidden>
+  <div class="modal modal-admin">
+    <div class="modal-head">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:20px;">👑</span>
+        <div>
+          <h3 style="font-size:16px; margin:0;">Painel do Administrador</h3>
+          <span style="font-size:11px; color:#c8a878;">Gerenciamento completo de todos os perfis na nuvem</span>
+        </div>
+      </div>
+      <button class="modal-close" id="adminClose" type="button">✕</button>
+    </div>
+
+    <div class="modal-body" style="gap:13px;">
+      <!-- Importar perfil (Exclusivo Admin) -->
+      <label class="field">
+        <span>Importar perfil</span>
+        <div class="room-input-group">
+          <input type="text" id="inpAdminRoom" placeholder="Nome do perfil ou código (ex: cd8)" autocomplete="off" spellcheck="false">
+          <button class="btn btn-gold btn-sm" id="btnAdminApplyRoom" type="button" title="Importar e abrir este perfil no app">Importar</button>
+        </div>
+      </label>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+        <span style="font-size:13px; font-weight:800; color:var(--gold);">Perfis salvos na nuvem</span>
+        <button class="btn btn-ghost btn-sm" id="btnAdminRefresh" type="button" title="Recarregar lista da nuvem">↺ Atualizar</button>
+      </div>
+
+      <div class="admin-profiles-list" id="adminProfilesList">
+        <div style="padding:15px; text-align:center; color:#c8a878;">Carregando perfis da nuvem...</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1053,6 +1094,21 @@ function updateBrandNickPill(){
   const el = $('#brandNickName');
   const nick = userNick();
   if (el) el.textContent = nick || 'Definir nick';
+}
+
+function updateCloudIndex(rName, count, ts){
+  const p = roomPath(rName);
+  if (!p || p.startsWith('_')) return;
+  fetch(`${dbUrl()}/rooms/_index/${p}.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: rName,
+      path: p,
+      count,
+      updated: ts || Date.now()
+    })
+  }).catch(() => {});
 }
 
 async function saveUserNickToDb(nick){
@@ -1488,11 +1544,8 @@ function syncMsg(txt, cls){
 
 function syncRefresh(){
   const r = roomName();
-  const ok = !!r;
-  $('#btnCloudSave').disabled = !ok;
-  $('#btnCloudLoad').disabled = !ok;
-  syncMsg(r ? `Código ativo: "${r}" — ${entries.length} counter(s) sincronizados.`
-            : '💡 Digite o código da guilda acima (ex: cd8) e clique em "Abrir".');
+  syncMsg(r ? `Perfil ativo: "${r}" — ${entries.length} counter(s) sincronizados automaticamente.`
+            : '💡 Informe seu Nick acima ou importe um perfil.');
 }
 
 function extractEntries(data){
@@ -1677,10 +1730,10 @@ async function copyCountersFrom(srcRoom){
   }
 }
 
-async function switchRoom(newRoom, fetchCloud = true){
+async function switchRoom(newRoom, fetchCloud = true, migrateCurrent = false){
   const nextRoom = (newRoom || userNick() || '').trim();
   if (!nextRoom){
-    toast('Informe o código da guilda');
+    toast('Informe o perfil');
     return;
   }
   const prevRoom = roomName();
@@ -1703,14 +1756,10 @@ async function switchRoom(newRoom, fetchCloud = true){
   addKnownRoom(nextRoom);
   registerUserInRoom(userNick(), nextRoom);
 
-  // 3. Atualiza campo de input se existir
-  const inp = $('#inpRoom');
-  if (inp) inp.value = nextRoom;
-
-  // 4. Limpa draft do builder
+  // 3. Limpa draft do builder
   clearDraft();
 
-  // 5. Ao abrir um código de guilda, busca os dados da nuvem
+  // 4. Ao abrir um perfil, busca os dados da nuvem
   if (fetchCloud && cloudOn()){
     syncMsg(`Buscando counters de "${nextRoom}" na nuvem...`, 'busy');
     try {
@@ -1731,32 +1780,48 @@ async function switchRoom(newRoom, fetchCloud = true){
         }
         setLastUpdated(remoteUpdated, nextPath);
         syncMsg(`✔ ${entries.length} counter(s) carregados da nuvem para "${nextRoom}".`, 'ok');
-        toast(`✔ Guilda "${nextRoom}": ${entries.length} counter(s) carregados da nuvem`);
+        toast(`✔ Perfil "${nextRoom}": ${entries.length} counter(s) carregados`);
       } else {
-        // Código novo na nuvem (data === null)
-        // Inicia do ZERO, sem continuar com counters que estavam abertos!
-        entries = [];
-        localStorage.setItem(roomStoreKey(nextPath), JSON.stringify([]));
-        setLastUpdated(Date.now(), nextPath);
-        syncMsg(`Código "${nextRoom}" iniciado do zero (0 counters).`, 'ok');
-        toast(`✔ Guilda "${nextRoom}" iniciada do zero (0 counters)`);
+        // Perfil novo na nuvem (data === null)
+        const localData = loadForRoom(nextPath);
+        if (localData && localData.length > 0){
+          entries = localData;
+        } else if (migrateCurrent && entries.length > 0){
+          localStorage.setItem(roomStoreKey(nextPath), JSON.stringify(entries));
+          setLastUpdated(Date.now(), nextPath);
+          cloudAuto(true);
+        } else {
+          entries = [];
+          localStorage.setItem(roomStoreKey(nextPath), JSON.stringify([]));
+          setLastUpdated(Date.now(), nextPath);
+        }
+        syncMsg(`Perfil "${nextRoom}" ativo (${entries.length} counters).`, 'ok');
+        toast(`✔ Perfil "${nextRoom}" ativo (${entries.length} counters)`);
       }
     } catch (err) {
       console.warn('Erro ao carregar da nuvem:', err);
-      // Fallback offline: carrega do armazenamento local daquela guilda específica
-      entries = loadForRoom(nextPath);
-      syncMsg(`⚠️ Offline: usando ${entries.length} counters locais de "${nextRoom}".`, 'err');
-      toast(`⚠️ Offline: carregados ${entries.length} counter(s) locais de "${nextRoom}"`);
+      const localData = loadForRoom(nextPath);
+      if (localData && localData.length > 0){
+        entries = localData;
+      } else if (migrateCurrent && entries.length > 0){
+        localStorage.setItem(roomStoreKey(nextPath), JSON.stringify(entries));
+      } else {
+        entries = [];
+      }
+      syncMsg(`⚠️ Offline: usando ${entries.length} counters de "${nextRoom}".`, 'err');
+      toast(`⚠️ Offline: carregados ${entries.length} counter(s) de "${nextRoom}"`);
     }
   } else {
     entries = loadForRoom(nextPath);
   }
 
+  updateCloudIndex(nextRoom, entries.length, getLastUpdated(nextPath));
   renderList();
   renderQuery();
   syncRefresh();
   renderRoomsSelect();
   updateBrandRoomPill();
+  updateBrandNickPill();
 }
 
 function renderRoomsSelect(){
@@ -1770,22 +1835,17 @@ function renderRoomsSelect(){
     const opt = document.createElement('option');
     opt.value = r;
     const count = getRoomCountersCount(r);
-    opt.textContent = `🏰 ${r} (${count} counter${count !== 1 ? 's' : ''})`;
+    opt.textContent = `👤 ${r} (${count} counter${count !== 1 ? 's' : ''})`;
     if (current && r.toLowerCase() === current.toLowerCase()) opt.selected = true;
     sel.appendChild(opt);
   });
-
-  const optNew = document.createElement('option');
-  optNew.value = '__new__';
-  optNew.textContent = '＋ Digitar outro código...';
-  sel.appendChild(optNew);
 }
 
 function updateBrandRoomPill(){
   const nameEl = $('#brandRoomName');
   const countEl = $('#brandRoomCount');
   const r = roomName();
-  if (nameEl) nameEl.textContent = r;
+  if (nameEl) nameEl.textContent = r || 'Sem perfil';
   if (countEl) countEl.textContent = entries.length;
 }
 
@@ -1805,6 +1865,7 @@ function cloudAuto(immediate = false){
         body: JSON.stringify({ updated: ts, entries }),
       });
       if (res.ok){
+        updateCloudIndex(r, entries.length, ts);
         syncMsg(`✔ Salvo na nuvem: "${r}" (${entries.length} counters)`, 'ok');
       }
     } catch (err) {
@@ -1821,21 +1882,74 @@ function cloudAuto(immediate = false){
 /* ---------- modal de sincronização ---------- */
 function openSync(){
   renderRoomsSelect();
-  $('#inpRoom').value = roomName();
   const inpNick = $('#inpUserNickEdit');
   if (inpNick) inpNick.value = userNick();
   const inpCopy = $('#inpCopyFrom');
   if (inpCopy) inpCopy.value = '';
   syncRefresh();
   $('#syncModal').hidden = false;
-  setTimeout(() => {
-    const inp = $('#inpRoom');
-    if (inp && typeof inp.select === 'function') inp.select();
-  }, 80);
 }
 function closeSync(){ $('#syncModal').hidden = true; }
 
-$('#brandBtn').addEventListener('click', openSync);
+/* ---------- clique normal e clique longo na bandeira (Admin) ---------- */
+let pressTimer = null;
+let isLongPress = false;
+let startX = 0, startY = 0;
+
+function handlePointerDown(e){
+  isLongPress = false;
+  if (e.touches && e.touches[0]){
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  } else {
+    startX = e.clientX || 0;
+    startY = e.clientY || 0;
+  }
+  pressTimer = setTimeout(() => {
+    isLongPress = true;
+    if (navigator.vibrate) try { navigator.vibrate(60); } catch {}
+    toast('👑 Painel do Administrador');
+    openAdminModal();
+  }, 700);
+}
+
+function handlePointerCancel(e){
+  if (e && e.touches && e.touches[0]){
+    const diffX = Math.abs(e.touches[0].clientX - startX);
+    const diffY = Math.abs(e.touches[0].clientY - startY);
+    if (diffX > 10 || diffY > 10){
+      clearTimeout(pressTimer);
+      return;
+    }
+  }
+  clearTimeout(pressTimer);
+}
+
+function handlePointerUp(){
+  clearTimeout(pressTimer);
+}
+
+const brandBtn = $('#brandBtn');
+if (brandBtn){
+  brandBtn.addEventListener('click', e => {
+    if (isLongPress){
+      e.preventDefault();
+      e.stopPropagation();
+      isLongPress = false;
+      return;
+    }
+    openSync();
+  });
+  brandBtn.addEventListener('pointerdown', handlePointerDown);
+  brandBtn.addEventListener('pointerup', handlePointerUp);
+  brandBtn.addEventListener('pointercancel', handlePointerCancel);
+  brandBtn.addEventListener('pointermove', e => {
+    if (Math.abs(e.movementX || 0) > 8 || Math.abs(e.movementY || 0) > 8){
+      clearTimeout(pressTimer);
+    }
+  });
+}
+
 const pillBtn = $('#brandRoomPill');
 if (pillBtn) pillBtn.addEventListener('click', openSync);
 
@@ -1864,9 +1978,12 @@ async function saveNickFromModal(){
   }
   localStorage.setItem(USER_NICK_KEY, val);
   saveUserNickToDb(val);
-  registerUserInRoom(val, roomName());
+  
+  // Ao mudar o nick, muda automaticamente o perfil ativo para o novo nick!
+  await switchRoom(val, true, true);
+
   updateBrandNickPill();
-  toast('✔ Nick salvo: ' + val);
+  toast('✔ Nick e perfil atualizados: ' + val);
 }
 const btnSaveNick = $('#btnSaveNickEdit');
 if (btnSaveNick) btnSaveNick.addEventListener('click', saveNickFromModal);
@@ -1904,41 +2021,182 @@ const selRooms = $('#selRooms');
 if (selRooms){
   selRooms.addEventListener('change', async e => {
     const val = e.target.value;
-    if (val === '__new__'){
-      $('#inpRoom').value = '';
-      $('#inpRoom').focus();
-      syncRefresh();
-      return;
+    if (val){
+      await switchRoom(val, true);
+      closeSync();
     }
-    await switchRoom(val, true);
-    closeSync();
   });
 }
 
-async function applyTypedRoom(){
-  const val = ($('#inpRoom').value || '').trim();
-  if (!val){
-    toast('Digite o código da guilda (ex: cd8)');
-    return;
-  }
-  await switchRoom(val, true);
-  closeSync();
+/* ---------- modal secreto do administrador ---------- */
+function openAdminModal(){
+  const modal = $('#adminModal');
+  if (!modal) return;
+  modal.hidden = false;
+  const inp = $('#inpAdminRoom');
+  if (inp) inp.value = '';
+  loadAdminProfilesList();
 }
-const btnApply = $('#btnApplyRoom');
-if (btnApply) btnApply.addEventListener('click', applyTypedRoom);
-$('#inpRoom').addEventListener('keydown', e => {
-  if (e.key === 'Enter'){
-    e.preventDefault();
-    applyTypedRoom();
-  }
-});
-['input','change'].forEach(ev =>
-  $('#inpRoom').addEventListener(ev, e => {
-    syncRefresh();
-  }));
 
-$('#btnCloudSave').addEventListener('click', cloudSave);
-$('#btnCloudLoad').addEventListener('click', () => cloudLoad(false));
+function closeAdminModal(){
+  const modal = $('#adminModal');
+  if (!modal) return;
+  modal.hidden = true;
+}
+
+const adminClose = $('#adminClose');
+if (adminClose) adminClose.addEventListener('click', closeAdminModal);
+const adminModal = $('#adminModal');
+if (adminModal){
+  adminModal.addEventListener('click', e => {
+    if (e.target.id === 'adminModal') closeAdminModal();
+  });
+}
+
+const btnAdminRefresh = $('#btnAdminRefresh');
+if (btnAdminRefresh) btnAdminRefresh.addEventListener('click', loadAdminProfilesList);
+
+const btnAdminApply = $('#btnAdminApplyRoom');
+if (btnAdminApply){
+  btnAdminApply.addEventListener('click', async () => {
+    const val = ($('#inpAdminRoom').value || '').trim();
+    if (!val){
+      toast('Digite o nome do perfil');
+      return;
+    }
+    await switchRoom(val, true);
+    closeAdminModal();
+    toast(`✔ Perfil "${val}" aberto como ativo para edição!`);
+  });
+}
+
+const inpAdminRoom = $('#inpAdminRoom');
+if (inpAdminRoom){
+  inpAdminRoom.addEventListener('keydown', async e => {
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      const val = (inpAdminRoom.value || '').trim();
+      if (!val){
+        toast('Digite o nome do perfil');
+        return;
+      }
+      await switchRoom(val, true);
+      closeAdminModal();
+      toast(`✔ Perfil "${val}" aberto como ativo para edição!`);
+    }
+  });
+}
+
+async function loadAdminProfilesList(){
+  const container = $('#adminProfilesList');
+  if (!container) return;
+  container.innerHTML = '<div style="padding:15px;text-align:center;color:#c8a878;">Carregando perfis da nuvem...</div>';
+
+  try {
+    let profilesMap = {};
+    try {
+      const res = await fetch(`${dbUrl()}/rooms/_index.json`);
+      if (res.ok){
+        const data = await res.json();
+        if (data && typeof data === 'object') profilesMap = data;
+      }
+    } catch {}
+
+    const known = getKnownRooms();
+    const candidateRooms = Array.from(new Set([...known, 'cd8', roomName()].filter(Boolean)));
+
+    await Promise.all(candidateRooms.map(async r => {
+      const p = roomPath(r);
+      if (!profilesMap[p]){
+        try {
+          const res = await fetch(`${dbUrl()}/rooms/${p}.json`);
+          if (res.ok){
+            const d = await res.json();
+            if (d){
+              const rem = extractEntries(d);
+              profilesMap[p] = {
+                name: r,
+                path: p,
+                count: rem.length,
+                updated: Number(d.updated) || Date.now()
+              };
+              fetch(`${dbUrl()}/rooms/_index/${p}.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profilesMap[p])
+              }).catch(() => {});
+            }
+          }
+        } catch {}
+      }
+    }));
+
+    const profiles = Object.values(profilesMap).filter(x => x && x.name);
+    if (!profiles.length){
+      container.innerHTML = '<div style="padding:15px;text-align:center;color:#c8a878;">Nenhum perfil encontrado na nuvem.</div>';
+      return;
+    }
+
+    profiles.sort((a, b) => (b.updated || 0) - (a.updated || 0));
+
+    container.innerHTML = '';
+    const current = roomName().toLowerCase();
+
+    profiles.forEach(p => {
+      const card = document.createElement('div');
+      const isCur = p.name.toLowerCase() === current;
+      card.className = 'admin-profile-card' + (isCur ? ' active' : '');
+      const count = p.count !== undefined ? p.count : 0;
+      const dateStr = p.updated ? new Date(p.updated).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' }) : 'Recentemente';
+
+      card.innerHTML = `
+        <div class="admin-profile-info">
+          <div class="admin-profile-title">
+            <span>🏰 ${esc(p.name)}</span>
+            ${isCur ? '<span style="font-size:10px;background:rgba(242,201,105,.25);color:var(--gold);padding:1px 6px;border-radius:6px;font-weight:700;">Ativo</span>' : ''}
+          </div>
+          <div class="admin-profile-meta">
+            ${count} counter${count !== 1 ? 's' : ''} · Atualizado: ${dateStr}
+          </div>
+        </div>
+        <div class="admin-profile-actions">
+          <button class="btn btn-gold btn-sm btn-admin-open" type="button" title="Abrir e editar este perfil">Abrir</button>
+          <button class="btn btn-ghost btn-sm btn-danger btn-admin-del" type="button" title="Excluir este perfil da nuvem">🗑</button>
+        </div>
+      `;
+
+      card.querySelector('.btn-admin-open').addEventListener('click', async () => {
+        await switchRoom(p.name, true);
+        closeAdminModal();
+        toast(`✔ Perfil "${p.name}" aberto como ativo para edição!`);
+      });
+
+      card.querySelector('.btn-admin-del').addEventListener('click', async () => {
+        if (!confirm(`⚠️ ATENÇÃO ADMIN:\nDeseja realmente excluir permanentemente o perfil "${p.name}" (${count} counters) da nuvem?\nEsta ação não poderá ser desfeita.`)){
+          return;
+        }
+        try {
+          await fetch(`${dbUrl()}/rooms/${p.path}.json`, { method: 'DELETE' });
+          await fetch(`${dbUrl()}/rooms/_index/${p.path}.json`, { method: 'DELETE' });
+          removeKnownRoom(p.name);
+          toast(`✔ Perfil "${p.name}" excluído da nuvem!`);
+          if (roomName().toLowerCase() === p.name.toLowerCase()){
+            const remaining = getKnownRooms();
+            const next = remaining[0] || userNick() || 'default';
+            await switchRoom(next, true);
+          }
+          loadAdminProfilesList();
+        } catch (err){
+          toast('✕ Erro ao excluir perfil da nuvem');
+        }
+      });
+
+      container.appendChild(card);
+    });
+  } catch (err) {
+    container.innerHTML = '<div style="padding:15px;text-align:center;color:#f0a5a5;">Erro ao listar perfis da nuvem.</div>';
+  }
+}
 
 /* ---------- import / export ---------- */
 function exportJSON(){
@@ -2124,6 +2382,7 @@ $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeP
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (picking) closePicker();
+  else if ($('#adminModal') && !$('#adminModal').hidden) closeAdminModal();
   else if (!$('#syncModal').hidden) closeSync();
   else if (!$('#regModal').hidden) closeReg();
 });
@@ -2182,7 +2441,7 @@ $('#fileImport').addEventListener('change', e => {
 $('#btnClearAll').addEventListener('click', async () => {
   const rName = roomName() || 'Modo Local';
   if (!entries.length) return toast(`A lista de "${rName}" já está vazia`);
-  if (confirm(`Apagar todos os ${entries.length} counters da guilda "${rName}"? Isso não afetará outras guildas.`)){
+  if (confirm(`Apagar todos os ${entries.length} counters do perfil "${rName}"? Isso não afetará outros perfis.`)){
     entries = [];
     persist(true);
     if (cloudOn() && roomName()){
@@ -2199,7 +2458,7 @@ const btnForget = $('#btnForgetRoom');
 if (btnForget){
   btnForget.addEventListener('click', () => {
     const r = roomName();
-    if (confirm(`Remover "${r}" da sua lista rápida de guildas? Os dados salvos na nuvem NÃO serão apagados.`)){
+    if (confirm(`Remover "${r}" da sua lista rápida de perfis? Os dados salvos na nuvem NÃO serão apagados.`)){
       removeKnownRoom(r);
       const remaining = getKnownRooms();
       const next = remaining[0] || userNick() || '';
@@ -2222,24 +2481,14 @@ async function handleFirstNickSubmit(){
   localStorage.setItem(USER_NICK_KEY, nick);
   saveUserNickToDb(nick);
 
-  if (!localStorage.getItem(ROOM_KEY)){
-    localStorage.setItem(ROOM_KEY, nick);
-  }
-  addKnownRoom(roomName());
-  registerUserInRoom(nick, roomName());
+  // Define automaticamente o perfil ativo para o nick informado
+  await switchRoom(nick, true, true);
 
   const modal = $('#firstNickModal');
   if (modal) modal.hidden = true;
 
   updateBrandNickPill();
-  updateBrandRoomPill();
-  renderRoomsSelect();
-  syncRefresh();
   toast(`✔ Bem-vindo, ${nick}!`);
-
-  if (roomName()){
-    cloudLoad(true);
-  }
 }
 
 if (btnConfirmFirstNick){
@@ -2340,6 +2589,12 @@ window.addEventListener('pagehide', () => {
         body: JSON.stringify({ updated: ts, entries }),
         keepalive: true
       });
+      fetch(`${dbUrl()}/rooms/_index/${roomPath()}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: roomName(), path: roomPath(), count: entries.length, updated: ts }),
+        keepalive: true
+      });
     } catch {}
   }
 });
@@ -2350,5 +2605,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c17f4e684ca5c6',t:'MTc4OTU3ODc1OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
