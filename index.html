@@ -660,6 +660,14 @@ h1,h2,h3{margin:0}
   font-size:11px;color:#a98d63;background:rgba(255,255,255,.06);
   padding:2px 8px;border-radius:10px;border:1px solid rgba(140,105,50,.25);
 }
+.user-code-badge{
+  font-size:11.5px;font-weight:900;color:#241403;background:linear-gradient(var(--gold),#d4a537);
+  padding:2px 8px;border-radius:6px;letter-spacing:1px;font-family:monospace;
+  box-shadow:0 1px 4px rgba(0,0,0,.4);display:inline-flex;align-items:center;cursor:pointer;
+  transition:transform .1s, filter .1s;
+}
+.user-code-badge:hover{filter:brightness(1.15);transform:scale(1.05)}
+.user-code-badge:active{transform:scale(.95)}
 .room-input-group{display:flex;gap:7px;align-items:center}
 .room-input-group input{flex:1;min-width:0}
 .sync-hint{margin:0;font-size:12px;color:#9c8055;line-height:1.5}
@@ -996,7 +1004,10 @@ img {
       <label class="field">
         <span>Perfil ativo</span>
         <div class="user-nick-locked">
-          <span class="nick-badge">🏰 <b id="displayActiveRoom">Sem perfil</b></span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="nick-badge">🏰 <b id="displayActiveRoom">Sem perfil</b></span>
+            <span class="user-code-badge" id="displayActiveCode" title="Seu código único de 4 números para compartilhar counters. Clique para copiar">#----</span>
+          </div>
           <span class="nick-lock-tag" id="displayActiveRoomCount">0 counters</span>
         </div>
       </label>
@@ -1008,10 +1019,10 @@ img {
         <div style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
           <!-- Copiar de outro código -->
           <label class="field" style="margin:0;">
-            <span>Copiar de:</span>
+            <span>Copiar de (código de 4 números):</span>
             <div class="room-input-group">
-              <input type="text" id="inpCopyFrom" placeholder="Código de origem (ex: cd8)" autocomplete="off" spellcheck="false">
-              <button class="btn btn-gold btn-sm" id="btnCopyFrom" type="button" title="Copiar counters deste código para o perfil atual">Copiar</button>
+              <input type="text" id="inpCopyFrom" placeholder="Ex: 7834" maxlength="4" pattern="[0-9]{4}" autocomplete="off" spellcheck="false" inputmode="numeric">
+              <button class="btn btn-gold btn-sm" id="btnCopyFrom" type="button" title="Buscar e escolher counters deste código">Copiar</button>
             </div>
           </label>
 
@@ -1062,7 +1073,7 @@ img {
       <label class="field" style="margin:0;">
         <span>Copiar counters de outro código para o perfil ativo:</span>
         <div class="room-input-group">
-          <input type="text" id="inpAdminCopyFrom" placeholder="Código de origem (ex: cd8)" autocomplete="off" spellcheck="false">
+          <input type="text" id="inpAdminCopyFrom" placeholder="Código de 4 números ou perfil (ex: 7834)" autocomplete="off" spellcheck="false">
           <button class="btn btn-gold btn-sm" id="btnAdminCopyFrom" type="button" title="Copiar counters deste código para o perfil atual">Copiar</button>
         </div>
       </label>
@@ -1196,6 +1207,31 @@ function roomPath(name = roomName()){
   return (name || '').toLowerCase().replace(/[.$#\[\]\/\s]+/g, '-');
 }
 
+function roomCodeKey(r = roomPath()){
+  return 'sw_siege_code_' + (r || 'default');
+}
+
+function getOrGenerateRoomCode(rName = roomName()){
+  if (!rName) return '----';
+  const p = roomPath(rName);
+  try {
+    const saved = localStorage.getItem(roomCodeKey(p));
+    if (saved && /^\d{4}$/.test(saved)) return saved;
+  } catch {}
+
+  let hash = 0;
+  const str = rName.toLowerCase();
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const code = String(1000 + (Math.abs(hash) % 9000));
+  try {
+    localStorage.setItem(roomCodeKey(p), code);
+  } catch {}
+  return code;
+}
+
 function updateBrandNickPill(){
   const el = $('#brandNickName');
   const nick = userNick();
@@ -1204,19 +1240,33 @@ function updateBrandNickPill(){
   if (disp) disp.textContent = nick || 'Não definido';
 }
 
-function updateCloudIndex(rName, count, ts){
+function updateCloudIndex(rName, count, ts, customCode){
   const p = roomPath(rName);
   if (!p || p.startsWith('_')) return;
+  const code = customCode || getOrGenerateRoomCode(rName);
   fetch(`${dbUrl()}/rooms/_index/${p}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: rName,
       path: p,
+      code,
       count,
       updated: ts || Date.now()
     })
   }).catch(() => {});
+
+  if (code && /^\d{4}$/.test(code)){
+    fetch(`${dbUrl()}/rooms/_codes/${code}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: rName,
+        path: p,
+        code
+      })
+    }).catch(() => {});
+  }
 }
 
 async function saveUserNickToDb(nick){
@@ -1651,9 +1701,7 @@ function syncMsg(txt, cls){
 }
 
 function syncRefresh(){
-  const r = roomName();
-  syncMsg(r ? `Perfil ativo: "${r}" — ${entries.length} counter(s) sincronizados automaticamente.`
-            : '💡 Informe seu Nick acima ou importe um perfil.');
+  syncMsg('Conectado ao banco de dados na nuvem.', 'ok');
 }
 
 function extractEntries(data){
@@ -1752,49 +1800,108 @@ async function cloudLoad(silent = false){
   }
 }
 
-async function copyCountersFrom(srcRoom){
-  const src = (srcRoom || '').trim();
-  if (!src){
-    toast('Digite o código de onde deseja copiar');
+async function copyCountersFrom(rawCodeOrRoom){
+  const input = (rawCodeOrRoom || '').trim();
+  if (!input){
+    toast('Digite o código de 4 números de onde deseja copiar');
     return;
   }
   const curRoom = roomName();
   if (!curRoom){
-    toast('Defina ou abra um código ativo antes de copiar');
-    return;
-  }
-  if (src.toLowerCase() === curRoom.toLowerCase()){
-    toast('O código de origem é igual ao perfil ativo');
+    toast('Defina ou abra um perfil ativo antes de copiar');
     return;
   }
 
-  syncMsg(`Buscando counters de "${src}" para copiar...`, 'busy');
+  syncMsg(`Buscando counters para o código #${input}...`, 'busy');
   try {
+    let targetRoomName = input;
+    let targetRoomPath = roomPath(input);
+    let targetCode = input;
+
+    // Se o input for 4 dígitos, resolve para o perfil correspondente
+    if (/^\d{4}$/.test(input)){
+      let resolved = null;
+      // 1. Tenta buscar em /rooms/_codes/${input}.json
+      try {
+        const resCode = await fetch(`${dbUrl()}/rooms/_codes/${input}.json`);
+        if (resCode.ok){
+          const d = await resCode.json();
+          if (d && d.name) resolved = d;
+        }
+      } catch {}
+
+      // 2. Se não achou, busca no /rooms/_index.json
+      if (!resolved){
+        try {
+          const resIdx = await fetch(`${dbUrl()}/rooms/_index.json`);
+          if (resIdx.ok){
+            const idxData = await resIdx.json();
+            if (idxData && typeof idxData === 'object'){
+              for (const item of Object.values(idxData)){
+                if (item && String(item.code) === input && item.name){
+                  resolved = item;
+                  break;
+                }
+              }
+            }
+          }
+        } catch {}
+      }
+
+      // 3. Fallback: salas conhecidas locais
+      if (!resolved){
+        const known = getKnownRooms();
+        for (const r of known){
+          if (getOrGenerateRoomCode(r) === input){
+            resolved = { name: r, path: roomPath(r), code: input };
+            break;
+          }
+        }
+      }
+
+      if (!resolved){
+        syncMsg(`✕ Nenhum perfil encontrado com o código #${input}.`, 'err');
+        toast(`Nenhum perfil encontrado com o código #${input}`);
+        return;
+      }
+
+      targetRoomName = resolved.name;
+      targetRoomPath = resolved.path || roomPath(resolved.name);
+      targetCode = resolved.code || input;
+    } else {
+      targetCode = getOrGenerateRoomCode(targetRoomName);
+    }
+
+    if (targetRoomName.toLowerCase() === curRoom.toLowerCase()){
+      toast('Esse código pertence ao seu próprio perfil ativo');
+      return;
+    }
+
     let srcCounters = [];
     // 1. Tenta baixar da nuvem
     try {
-      const res = await fetch(`${dbUrl()}/rooms/${roomPath(src)}.json`);
+      const res = await fetch(`${dbUrl()}/rooms/${targetRoomPath}.json`);
       if (res.ok){
         const data = await res.json();
         if (data) srcCounters = extractEntries(data);
       }
     } catch (e){
-      console.warn('Erro ao buscar código de origem na nuvem:', e);
+      console.warn('Erro ao buscar counters na nuvem:', e);
     }
 
     // 2. Se não encontrou na nuvem, busca no armazenamento local deste aparelho
     if (!srcCounters.length){
-      srcCounters = loadForRoom(roomPath(src));
+      srcCounters = loadForRoom(targetRoomPath);
     }
 
     if (!srcCounters.length){
-      syncMsg(`✕ Nenhum counter encontrado no código "${src}".`, 'err');
-      toast(`Nenhum counter encontrado em "${src}"`);
+      syncMsg(`✕ Nenhum counter encontrado no código #${targetCode} ("${targetRoomName}").`, 'err');
+      toast(`Nenhum counter encontrado no código #${targetCode}`);
       return;
     }
 
-    syncMsg(`Abrindo seleção de counters de "${src}"...`, 'ok');
-    openCopyModal(src, srcCounters);
+    syncMsg(`Abrindo seleção de counters do código #${targetCode}...`, 'ok');
+    openCopyModal(targetRoomName, srcCounters, targetCode);
   } catch (err){
     console.error('Erro ao buscar counters de origem:', err);
     syncMsg('✕ Falha ao buscar counters: ' + err.message, 'err');
@@ -1808,8 +1915,9 @@ let copyCandidateList = [];
 let copySelectedIndices = new Set();
 let copySearchQuery = '';
 
-function openCopyModal(srcName, candidateList){
+function openCopyModal(srcName, candidateList, srcCode){
   copySource = srcName;
+  const codeStr = srcCode ? ` (#${srcCode})` : '';
   copyCandidateList = (candidateList || []).slice();
   copySelectedIndices.clear();
   copySearchQuery = '';
@@ -1818,7 +1926,7 @@ function openCopyModal(srcName, candidateList){
   if (inpSearch) inpSearch.value = '';
 
   const titleEl = $('#copyModalTitle');
-  if (titleEl) titleEl.textContent = `Escolher counters de "${srcName}"`;
+  if (titleEl) titleEl.textContent = `Escolher counters de "${srcName}"${codeStr}`;
 
   const subEl = $('#copyModalSubtitle');
   if (subEl) subEl.textContent = `${copyCandidateList.length} counter(s) disponíveis · Marque os que deseja copiar`;
@@ -2114,7 +2222,11 @@ function updateBrandRoomPill(){
 
   const dispRoom = $('#displayActiveRoom');
   const dispCount = $('#displayActiveRoomCount');
+  const dispCode = $('#displayActiveCode');
+  const code = getOrGenerateRoomCode(r);
+
   if (dispRoom) dispRoom.textContent = r || 'Sem perfil';
+  if (dispCode) dispCode.textContent = r ? `#${code}` : '----';
   if (dispCount) dispCount.textContent = `${entries.length} counter${entries.length !== 1 ? 's' : ''}`;
 }
 
@@ -2128,13 +2240,14 @@ function cloudAuto(immediate = false){
   const doSave = async () => {
     try {
       const ts = getLastUpdated(path) || Date.now();
+      const code = getOrGenerateRoomCode(r);
       const res = await fetch(`${dbUrl()}/rooms/${path}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ updated: ts, entries }),
+        body: JSON.stringify({ updated: ts, entries, code }),
       });
       if (res.ok){
-        updateCloudIndex(r, entries.length, ts);
+        updateCloudIndex(r, entries.length, ts, code);
         syncMsg(`✔ Salvo na nuvem: "${r}" (${entries.length} counters)`, 'ok');
       }
     } catch (err) {
@@ -2197,6 +2310,12 @@ async function renameProfile(oldName, newName){
     // Exclui o caminho antigo da nuvem (renomeação limpa, sem criar perfil duplicado)
     await fetch(`${dbUrl()}/rooms/${oldP}.json`, { method: 'DELETE' });
     await fetch(`${dbUrl()}/rooms/_index/${oldP}.json`, { method: 'DELETE' });
+    const oldCode = getOrGenerateRoomCode(oldR);
+    const newCode = getOrGenerateRoomCode(newR);
+    if (oldCode !== newCode){
+      await fetch(`${dbUrl()}/rooms/_codes/${oldCode}.json`, { method: 'DELETE' }).catch(() => {});
+    }
+    updateCloudIndex(newR, entriesToSave.length, ts, newCode);
 
     // Atualiza armazenamento local
     try {
@@ -2250,7 +2369,11 @@ function closeSync(){ $('#syncModal').hidden = true; }
 async function applyCopyFrom(){
   const val = ($('#inpCopyFrom').value || '').trim();
   if (!val){
-    toast('Digite o código de onde deseja copiar (ex: cd8)');
+    toast('Digite o código de 4 números do jogador');
+    return;
+  }
+  if (!/^\d{4}$/.test(val)){
+    toast('O código deve conter exatamente 4 números (ex: 7834)');
     return;
   }
   await copyCountersFrom(val);
@@ -2263,6 +2386,24 @@ if (inpCopy){
     if (e.key === 'Enter'){
       e.preventDefault();
       applyCopyFrom();
+    }
+  });
+}
+
+const dispActiveCode = $('#displayActiveCode');
+if (dispActiveCode){
+  dispActiveCode.addEventListener('click', () => {
+    const code = getOrGenerateRoomCode(roomName());
+    if (code && code !== '----'){
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(code).then(() => {
+          toast(`✔ Código #${code} copiado! Compartilhe com quem quiser.`);
+        }).catch(() => {
+          toast(`Seu código é: #${code}`);
+        });
+      } else {
+        toast(`Seu código é: #${code}`);
+      }
     }
   });
 }
@@ -2537,11 +2678,13 @@ async function loadAdminProfilesList(){
       card.className = 'admin-profile-card' + (isCur ? ' active' : '');
       const count = p.count !== undefined ? p.count : 0;
       const dateStr = p.updated ? new Date(p.updated).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' }) : 'Recentemente';
+      const pCode = p.code || getOrGenerateRoomCode(p.name);
 
       card.innerHTML = `
         <div class="admin-profile-info">
           <div class="admin-profile-title">
             <span>🏰 ${esc(p.name)}</span>
+            <span class="user-code-badge" style="font-size:10px; padding:1px 6px;">#${pCode}</span>
             ${isCur ? '<span style="font-size:10px;background:rgba(242,201,105,.25);color:var(--gold);padding:1px 6px;border-radius:6px;font-weight:700;">Ativo</span>' : ''}
           </div>
           <div class="admin-profile-meta">
@@ -3003,5 +3146,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c1cf45a8fa228d',t:'MTc4OTU4MjAzNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c1e3d8ea4537a6',t:'MTc4OTU4Mjg3Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
