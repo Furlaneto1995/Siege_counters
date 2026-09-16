@@ -1710,7 +1710,7 @@ function saveQuery(){
 }
 let query = loadQuery();
 let editing = null;                 // id do counter em edição (null = novo)
-let entries = load().filter(isValidEntry);
+let entries = userNick() ? load().filter(isValidEntry) : [];
 
 // Higienização automática: remove counters fantasmas e corrupções do armazenamento local
 try {
@@ -2856,7 +2856,7 @@ async function confirmCopySelection(){
   syncMsg(`✔ ${addedCount} counter(s) de "${copySource}" adicionados ao seu perfil (total: ${entries.length}).`, 'ok');
 }
 
-async function switchRoom(newRoom, fetchCloud = true, migrateCurrent = false){
+async function switchRoom(newRoom, fetchCloud = true){
   const nextRoom = (newRoom || userNick() || '').trim();
   if (!nextRoom){
     toast('Informe o perfil');
@@ -2873,8 +2873,8 @@ async function switchRoom(newRoom, fetchCloud = true, migrateCurrent = false){
   const prevPath = roomPath(prevRoom);
   const nextPath = roomPath(nextRoom);
 
-  // 1. Salva a lista atual na sala anterior (se não for a mesma sala)
-  if (prevPath !== nextPath){
+  // 1. Salva a lista atual na sala anterior (se não for a mesma sala e se havia perfil)
+  if (prevRoom && prevPath && prevPath !== nextPath){
     const prevKey = roomStoreKey(prevPath);
     try {
       localStorage.setItem(prevKey, JSON.stringify(entries));
@@ -2919,10 +2919,6 @@ async function switchRoom(newRoom, fetchCloud = true, migrateCurrent = false){
         const localData = loadForRoom(nextPath);
         if (localData && localData.length > 0){
           entries = localData;
-        } else if (migrateCurrent && entries.length > 0){
-          localStorage.setItem(roomStoreKey(nextPath), JSON.stringify(entries));
-          setLastUpdated(Date.now(), nextPath);
-          cloudAuto(true);
         } else {
           entries = [];
           localStorage.setItem(roomStoreKey(nextPath), JSON.stringify([]));
@@ -2936,8 +2932,6 @@ async function switchRoom(newRoom, fetchCloud = true, migrateCurrent = false){
       const localData = loadForRoom(nextPath);
       if (localData && localData.length > 0){
         entries = localData;
-      } else if (migrateCurrent && entries.length > 0){
-        localStorage.setItem(roomStoreKey(nextPath), JSON.stringify(entries));
       } else {
         entries = [];
       }
@@ -3814,11 +3808,19 @@ async function loadAdminProfilesList(){
 
   try {
     let profilesMap = {};
+    let guildsMap = {};
     try {
-      const res = await fetch(`${dbUrl()}/rooms/_index.json`);
-      if (res.ok){
-        const data = await res.json();
+      const [idxRes, gRes] = await Promise.all([
+        fetch(`${dbUrl()}/rooms/_index.json`),
+        fetch(`${dbUrl()}/rooms/_guilds.json`)
+      ]);
+      if (idxRes.ok){
+        const data = await idxRes.json();
         if (data && typeof data === 'object') profilesMap = data;
+      }
+      if (gRes.ok){
+        const gData = await gRes.json();
+        if (gData && typeof gData === 'object') guildsMap = gData;
       }
     } catch {}
 
@@ -3865,15 +3867,22 @@ async function loadAdminProfilesList(){
     profiles.forEach(p => {
       const card = document.createElement('div');
       const isCur = p.name.toLowerCase() === current;
-      const isGuildProf = p.isGuild || p.name.toLowerCase() === 'cd8' || p.name.toLowerCase() === getActiveGuildSlug();
+      const slug = (p.path || roomPath(p.name)).toLowerCase();
+      const isGuildProf = Boolean(p.isGuild) || slug === 'cd8' || (getActiveGuildSlug() && slug === getActiveGuildSlug()) || Boolean(guildsMap[slug]);
       const count = p.count !== undefined ? p.count : 0;
       const dateStr = p.updated ? new Date(p.updated).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' }) : 'Recentemente';
       const pCode = isGuildProf ? '••••' : (p.code || getOrGenerateRoomCode(p.name));
+      const iconHtml = isGuildProf
+        ? '<span>🏰</span>'
+        : '<span style="color:#5bb2ff; filter:drop-shadow(0 0 1px #3b82f6); font-size:15px;">👤</span>';
 
       card.innerHTML = `
         <div class="admin-profile-info">
           <div class="admin-profile-title">
-            <span>🏰 ${esc(p.name)}</span>
+            <span style="display:inline-flex; align-items:center; gap:5px;">
+              ${iconHtml}
+              <strong>${esc(p.name)}</strong>
+            </span>
             <span class="user-code-badge" style="font-size:10px; padding:1px 6px;">#${pCode}</span>
             ${isCur ? '<span style="font-size:10px;background:rgba(242,201,105,.25);color:var(--gold);padding:1px 6px;border-radius:6px;font-weight:700;">Ativo</span>' : ''}
           </div>
@@ -4265,8 +4274,13 @@ async function handleFirstNickSubmit(){
   localStorage.setItem(USER_NICK_KEY, nick);
   saveUserNickToDb(nick);
 
-  // Define automaticamente o perfil ativo para o nick informado
-  await switchRoom(nick, true, true);
+  // Garante que o perfil novo comece limpo sem herdar counters de outras sessões
+  entries = [];
+  const myPath = roomPath(nick);
+  localStorage.setItem(roomStoreKey(myPath), JSON.stringify([]));
+
+  // Define automaticamente o perfil ativo para o nick informado (sem migrar)
+  await switchRoom(nick, true);
 
   const modal = $('#firstNickModal');
   if (modal) modal.hidden = true;
@@ -4405,5 +4419,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c28aa60ec16296',t:'MTc4OTU4OTcwOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
