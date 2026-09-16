@@ -42,14 +42,23 @@ button,input,select{font:inherit}
 button{color:inherit;cursor:pointer;border:0;background:none;padding:0;margin:0;font:inherit}
 h1,h2,h3{margin:0}
 
-/* ---------- topbar ---------- */
-.topbar{
-  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
-  padding:14px 22px;
-  background:linear-gradient(180deg,#3a2718,#20150e);
+/* ---------- topbar & cabeçalho fixo unificado ---------- */
+.app-header-fixed{
+  position:sticky;top:0;left:0;width:100%;z-index:40;
+  background:#140d09;
   border-bottom:2px solid var(--line2);
-  box-shadow:0 6px 22px rgba(0,0,0,.65);
-  position:sticky;top:0;z-index:40;
+  box-shadow:0 10px 28px rgba(0,0,0,.88);
+}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  padding:10px 22px 6px;
+  max-width:1180px;margin:0 auto;
+}
+.header-search-wrap{
+  max-width:1180px;margin:0 auto;padding:0 22px 6px;
+}
+.header-list-head-wrap{
+  max-width:1180px;margin:0 auto;padding:0 22px 6px;
 }
 .brand{display:flex;align-items:center;gap:13px}
 .brand-icon{
@@ -233,14 +242,10 @@ h1,h2,h3{margin:0}
 .filters input:focus{border-color:var(--gold2)}
 /* cabeçalho fixo DEFESA | ATAQUE — mesma grade do card */
 .list-head{
-  position:sticky;
-  top:calc(var(--topbar-h, 68px) + 10px + var(--search-h, 60px) + 6px);
-  z-index:25;
   display:grid;grid-template-columns:1fr 34px 1fr;gap:14px;align-items:center;
-  padding:8px 13px;margin-bottom:10px;border-radius:6px;
-  background:linear-gradient(180deg,#3a2718,#241811);
+  padding:6px 12px;border-radius:5px;
+  background:linear-gradient(180deg,#342215,#21160f);
   border:1px solid var(--line2);
-  box-shadow:0 4px 14px rgba(0,0,0,.65);
   font-size:11.5px;font-weight:900;letter-spacing:.6px;
 }
 .list-head[hidden]{display:none !important}
@@ -471,16 +476,12 @@ h1,h2,h3{margin:0}
   .builder-meta .btn{width:100%}
 }
 
-/* ===== busca por defesa (reverse lookup — fixo no topo e compacto) ===== */
+/* ===== busca por defesa (reverse lookup — dentro do cabeçalho fixo) ===== */
 .panel-search{
-  position:sticky;
-  top:calc(var(--topbar-h, 68px) + 10px);
-  z-index:30;
-  padding:8px 14px;
-  background:linear-gradient(180deg,#2e1f16,#17100b);
-  border:1px solid rgba(140,105,50,.65);
-  border-radius:8px;
-  box-shadow:0 8px 24px rgba(0,0,0,.75);
+  padding:6px 12px;
+  background:rgba(38,25,17,.85);
+  border:1px solid var(--line);
+  border-radius:6px;
 }
 .panel-search .search-row{
   display:flex;
@@ -605,7 +606,11 @@ h1,h2,h3{margin:0}
 .card-tags{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 
 @media (max-width:768px){
-  .panel-search{padding:8px 10px;top:calc(var(--topbar-h,60px) + 8px)}
+  .topbar{padding:8px 12px 4px}
+  .header-search-wrap{padding:0 12px 4px}
+  .header-list-head-wrap{padding:0 12px 4px}
+  .list-head{grid-template-columns:1fr 22px 1fr;gap:8px;padding:5px 9px;font-size:10px}
+  .panel-search{padding:6px 8px}
   .panel-search .search-row{gap:8px}
   .search-brand h2{font-size:13.5px}
   .slots-search{grid-template-columns:repeat(3,40px);gap:5px}
@@ -695,52 +700,64 @@ img {
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <button class="brand-icon" id="brandBtn" type="button"
-      aria-label="Sincronização e menu" title="Sincronização e menu"></button>
-    <div>
-      <div class="brand-title-row">
-        <h1>Siege Counters</h1>
-        <button class="room-pill" id="brandRoomPill" type="button" title="Código ativo. Clique para trocar de guilda ou sincronizar">
-          <span>🏰</span>
-          <span id="brandRoomName">Local</span>
-          <span class="room-pill-count" id="brandRoomCount">0</span>
-        </button>
+<header class="app-header-fixed">
+  <div class="topbar">
+    <div class="brand">
+      <button class="brand-icon" id="brandBtn" type="button"
+        aria-label="Sincronização e menu" title="Sincronização e menu"></button>
+      <div>
+        <div class="brand-title-row">
+          <h1>Siege Counters</h1>
+          <button class="room-pill" id="brandRoomPill" type="button" title="Código ativo. Clique para trocar de guilda ou sincronizar">
+            <span>🏰</span>
+            <span id="brandRoomName">cd8</span>
+            <span class="room-pill-count" id="brandRoomCount">0</span>
+          </button>
+        </div>
+        <p>Banco de counters para Cerco de Guilda</p>
       </div>
-      <p>Banco de counters para Cerco de Guilda</p>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" id="btnInstall" type="button" hidden title="Instalar como aplicativo">⤓ Instalar</button>
+      <button class="btn btn-add" id="btnNew" type="button" title="Registrar novo counter">
+        <span class="plus">＋</span><span class="add-label">Novo counter</span>
+      </button>
     </div>
   </div>
-  <div class="topbar-actions">
-    <button class="btn btn-ghost" id="btnInstall" type="button" hidden title="Instalar como aplicativo">⤓ Instalar</button>
-    <button class="btn btn-add" id="btnNew" type="button" title="Registrar novo counter">
-      <span class="plus">＋</span><span class="add-label">Novo counter</span>
-    </button>
+
+  <!-- BUSCA POR DEFESA & FILTRO INTEGRADOS NO CABEÇALHO -->
+  <div class="header-search-wrap">
+    <section class="panel-search" id="panelSearch">
+      <div class="search-row">
+        <div class="search-brand">
+          <h2>🔍 Buscar counter</h2>
+          <span class="badge" id="listCount" title="Total de counters salvos">0</span>
+        </div>
+
+        <div class="slots slots-search" id="qSlots"></div>
+
+        <div class="search-filter-wrap">
+          <input type="search" id="inpFilter" placeholder="🔎 Filtrar por monstro..." autocomplete="off">
+        </div>
+
+        <div class="search-actions">
+          <span class="q-status" id="qStatus">Escolha até 3 monstros da defesa inimiga</span>
+          <button class="btn btn-ghost btn-sm" id="btnQClear" type="button">Limpar busca</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- CABEÇALHO DEFESA | ATAQUE FIXO (SEM FRESTAS) -->
+  <div class="header-list-head-wrap" id="headerListHead">
+    <div class="list-head" id="listHead">
+      <span class="lh-def">🛡️ DEFESA</span>
+      <span class="lh-atk">⚔️ ATAQUE</span>
+    </div>
   </div>
 </header>
 
 <main class="wrap">
-
-  <!-- ============ BUSCA POR DEFESA (FIXO NO TOPO) ============ -->
-  <section class="panel panel-search" id="panelSearch">
-    <div class="search-row">
-      <div class="search-brand">
-        <h2>🔍 Buscar counter</h2>
-        <span class="badge" id="listCount" title="Total de counters salvos">0</span>
-      </div>
-
-      <div class="slots slots-search" id="qSlots"></div>
-
-      <div class="search-filter-wrap">
-        <input type="search" id="inpFilter" placeholder="🔎 Filtrar por monstro..." autocomplete="off">
-      </div>
-
-      <div class="search-actions">
-        <span class="q-status" id="qStatus">Escolha até 3 monstros da defesa inimiga</span>
-        <button class="btn btn-ghost btn-sm" id="btnQClear" type="button">Limpar busca</button>
-      </div>
-    </div>
-  </section>
 
   <!-- ============ RESULTADOS DA BUSCA ============ -->
   <section class="q-panel" id="qPanel" hidden>
@@ -753,10 +770,6 @@ img {
 
   <!-- ============ LISTA DE COUNTERS ============ -->
   <section id="savedSection">
-    <div class="list-head" id="listHead">
-      <span class="lh-def">🛡️ DEFESA</span>
-      <span class="lh-atk">⚔️ ATAQUE</span>
-    </div>
     <div id="list" class="list"></div>
     <div id="empty" class="empty">
       <span class="empty-icon">📜</span>
@@ -882,39 +895,12 @@ img {
         💡 Ao digitar um código e clicar em <b>Abrir</b>, os counters da guilda são carregados diretamente da nuvem. Novos times criados são salvos automaticamente na nuvem.
       </p>
 
-      <div class="sync-status" id="syncStatus">Configure o Firebase para ativar a nuvem.</div>
+      <div class="sync-status" id="syncStatus">Conectado ao banco da guilda na nuvem.</div>
 
       <div class="sync-actions">
         <button class="btn btn-gold" id="btnCloudSave" type="button">⬆ Salvar este código na nuvem</button>
         <button class="btn btn-ghost" id="btnCloudLoad" type="button">⬇ Carregar este código da nuvem</button>
       </div>
-
-      <details class="sync-adv">
-        <summary>Configuração avançada</summary>
-        <label class="field" style="margin-top:9px">
-          <span>URL do Realtime Database</span>
-          <input type="url" id="inpDbUrl" spellcheck="false" autocomplete="off"
-                 placeholder="https://...firebaseio.com">
-        </label>
-        <p class="sync-hint" style="margin-top:7px">
-          Depende da região escolhida ao criar o banco. Se a sua for
-          <code>southamerica-east1</code>, a URL termina em
-          <code>.firebasedatabase.app</code>.
-        </p>
-        <div class="sync-actions">
-          <button class="btn btn-ghost btn-sm" id="btnTestDb" type="button">🔌 Testar conexão</button>
-        </div>
-        <div style="margin-top:10px;font-size:11.5px;color:#c8a878;background:rgba(0,0,0,.35);padding:9px 12px;border-radius:5px;border:1px solid var(--line);">
-          <strong style="color:var(--gold);">Regras do Realtime Database:</strong><br>
-          Se criar seu próprio banco, libere leitura/escrita no console do Firebase (Realtime Database &gt; Regras):<br>
-          <pre style="margin:6px 0 2px;background:#0d0906;padding:6px;border-radius:4px;color:#8dc2f0;font-size:11px;overflow-x:auto;">{
-  "rules": {
-    ".read": true,
-    ".write": true
-  }
-}</pre>
-        </div>
-      </details>
 
       <details class="sync-adv">
         <summary>Backup e restauração</summary>
@@ -990,36 +976,32 @@ function fixEntry(e){
 }
 
 /* ================= ARMAZENAMENTO E SALAS (NUVEM & APP) ================= */
-const STORE_LEGACY   = 'sw_siege_counters_v1';
-const STORE          = STORE_LEGACY;
+const DEFAULT_ROOM   = 'cd8';
 const ROOM_KEY       = 'sw_siege_room';
 const ROOMS_LIST_KEY = 'sw_siege_rooms_list';
-const MIGRATED_KEY   = 'sw_siege_migrated_v2';
 const URL_KEY        = 'sw_siege_dburl';
 const FIREBASE_DEFAULT = 'https://siege-counters-sw-default-rtdb.firebaseio.com';
 
 function dbUrl(){
-  const campo = $('#inpDbUrl');
-  const digitado = campo ? campo.value.trim() : '';
-  return (digitado || localStorage.getItem(URL_KEY) || FIREBASE_DEFAULT).replace(/\/+$/, '');
+  return (localStorage.getItem(URL_KEY) || FIREBASE_DEFAULT).replace(/\/+$/, '');
 }
-const cloudOn = () => /^https:\/\/.+/.test(dbUrl());
+const cloudOn = () => true;
 
 function roomName(){
-  return (localStorage.getItem(ROOM_KEY) || '').trim();
+  return (localStorage.getItem(ROOM_KEY) || DEFAULT_ROOM).trim();
 }
 function roomPath(name = roomName()){
-  return (name || '').toLowerCase().replace(/[.$#\[\]\/\s]+/g, '-');
+  return (name || DEFAULT_ROOM).toLowerCase().replace(/[.$#\[\]\/\s]+/g, '-');
 }
 
 function roomStoreKey(r = roomPath()){
-  return r ? ('sw_siege_counters_room_' + r) : STORE_LEGACY;
+  return 'sw_siege_counters_room_' + (r || DEFAULT_ROOM);
 }
 function roomBackupKey(r = roomPath()){
-  return r ? ('sw_siege_counters_bkp_' + r) : 'sw_siege_counters_backup';
+  return 'sw_siege_counters_bkp_' + (r || DEFAULT_ROOM);
 }
 function roomUpdatedKey(r = roomPath()){
-  return r ? ('sw_siege_updated_room_' + r) : 'sw_siege_updated';
+  return 'sw_siege_updated_room_' + (r || DEFAULT_ROOM);
 }
 
 function getLastUpdated(r = roomPath()){
@@ -1029,10 +1011,14 @@ function setLastUpdated(ts, r = roomPath()){
   localStorage.setItem(roomUpdatedKey(r), String(ts || Date.now()));
 }
 
-function getRoomCountersCount(r){
-  const k = roomStoreKey(r);
+function getRoomCountersCount(name){
+  const p = roomPath(name);
+  if (!p) return 0;
+  // Se for a guilda atualmente aberta no app, a contagem real é `entries.length`
+  if (p === roomPath(roomName())) return entries.length;
+  // Caso contrário, lê o que está gravado no armazenamento local deste código
   try {
-    const raw = localStorage.getItem(k);
+    const raw = localStorage.getItem(roomStoreKey(p));
     if (raw){
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) return arr.length;
@@ -1044,10 +1030,10 @@ function getRoomCountersCount(r){
 function getKnownRooms(){
   try {
     const list = JSON.parse(localStorage.getItem(ROOMS_LIST_KEY));
-    if (Array.isArray(list)) return list.filter(Boolean);
+    if (Array.isArray(list) && list.length > 0) return list.filter(Boolean);
   } catch {}
-  const current = (localStorage.getItem(ROOM_KEY) || '').trim();
-  return current ? [current] : [];
+  const current = roomName();
+  return current ? [current] : [DEFAULT_ROOM];
 }
 
 function addKnownRoom(name){
@@ -1075,23 +1061,6 @@ function loadForRoom(r = roomPath()){
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) return arr.map(fixEntry);
     } catch {}
-  }
-  // Se for Modo Local (r === ''), verifica counters legados
-  if (!r){
-    const legacy = localStorage.getItem(STORE_LEGACY);
-    if (legacy){
-      try {
-        const arr = JSON.parse(legacy);
-        if (Array.isArray(arr) && arr.length > 0) return arr.map(fixEntry);
-      } catch {}
-    }
-    const bkp = localStorage.getItem('sw_siege_counters_backup');
-    if (bkp){
-      try {
-        const arr = JSON.parse(bkp);
-        if (Array.isArray(arr) && arr.length > 0) return arr.map(fixEntry);
-      } catch {}
-    }
   }
   return [];
 }
@@ -1420,10 +1389,9 @@ function syncMsg(txt, cls){
 
 function syncRefresh(){
   const r = roomName();
-  const ok = cloudOn() && !!r;
+  const ok = !!r;
   $('#btnCloudSave').disabled = !ok;
   $('#btnCloudLoad').disabled = !ok;
-  if (!cloudOn()) return syncMsg('URL do banco inválida — confira em "Configuração avançada".', 'err');
   syncMsg(r ? `Código ativo: "${r}" — ${entries.length} counter(s) sincronizados.`
             : '💡 Digite o código da guilda acima (ex: cd8) e clique em "Abrir".');
 }
@@ -1525,7 +1493,7 @@ async function cloudLoad(silent = false){
 }
 
 async function switchRoom(newRoom, fetchCloud = true){
-  const nextRoom = (newRoom || '').trim();
+  const nextRoom = (newRoom || DEFAULT_ROOM).trim();
   const prevRoom = roomName();
   const prevPath = roomPath(prevRoom);
   const nextPath = roomPath(nextRoom);
@@ -1543,7 +1511,7 @@ async function switchRoom(newRoom, fetchCloud = true){
 
   // 2. Define a nova sala ativa
   localStorage.setItem(ROOM_KEY, nextRoom);
-  if (nextRoom) addKnownRoom(nextRoom);
+  addKnownRoom(nextRoom);
 
   // 3. Atualiza campo de input se existir
   const inp = $('#inpRoom');
@@ -1552,18 +1520,7 @@ async function switchRoom(newRoom, fetchCloud = true){
   // 4. Limpa draft do builder
   clearDraft();
 
-  // 5. Se for Modo Local (sem sala)
-  if (!nextRoom){
-    entries = loadForRoom('');
-    renderList();
-    renderQuery();
-    syncRefresh();
-    renderRoomsSelect();
-    updateBrandRoomPill();
-    return;
-  }
-
-  // 6. Ao abrir um código de guilda, busca os dados da nuvem
+  // 5. Ao abrir um código de guilda, busca os dados da nuvem
   if (fetchCloud && cloudOn()){
     syncMsg(`Buscando counters de "${nextRoom}" na nuvem...`, 'busy');
     try {
@@ -1616,15 +1573,8 @@ function renderRoomsSelect(){
   const sel = $('#selRooms');
   if (!sel) return;
   const known = getKnownRooms();
-  const current = (localStorage.getItem(ROOM_KEY) || '').trim();
+  const current = roomName();
   sel.innerHTML = '';
-
-  const optDefault = document.createElement('option');
-  optDefault.value = '';
-  const localCount = getRoomCountersCount('');
-  optDefault.textContent = `📁 Modo Local (${localCount} counters)`;
-  if (!current) optDefault.selected = true;
-  sel.appendChild(optDefault);
 
   known.forEach(r => {
     const opt = document.createElement('option');
@@ -1637,7 +1587,7 @@ function renderRoomsSelect(){
 
   const optNew = document.createElement('option');
   optNew.value = '__new__';
-  optNew.textContent = '＋ Digitar ou criar novo código...';
+  optNew.textContent = '＋ Digitar outro código...';
   sel.appendChild(optNew);
 }
 
@@ -1645,7 +1595,7 @@ function updateBrandRoomPill(){
   const nameEl = $('#brandRoomName');
   const countEl = $('#brandRoomCount');
   const r = roomName();
-  if (nameEl) nameEl.textContent = r ? r : 'Local';
+  if (nameEl) nameEl.textContent = r;
   if (countEl) countEl.textContent = entries.length;
 }
 
@@ -1681,8 +1631,7 @@ function cloudAuto(immediate = false){
 /* ---------- modal de sincronização ---------- */
 function openSync(){
   renderRoomsSelect();
-  $('#inpRoom').value  = roomName();
-  $('#inpDbUrl').value = localStorage.getItem(URL_KEY) || FIREBASE_DEFAULT;
+  $('#inpRoom').value = roomName();
   syncRefresh();
   $('#syncModal').hidden = false;
   setTimeout(() => {
@@ -1717,9 +1666,7 @@ if (selRooms){
 async function applyTypedRoom(){
   const val = ($('#inpRoom').value || '').trim();
   if (!val){
-    await switchRoom('', false);
-    toast('✔ Modo local ativo');
-    closeSync();
+    toast('Digite o código da guilda (ex: cd8)');
     return;
   }
   await switchRoom(val, true);
@@ -1737,29 +1684,6 @@ $('#inpRoom').addEventListener('keydown', e => {
   $('#inpRoom').addEventListener(ev, e => {
     syncRefresh();
   }));
-
-['input','change'].forEach(ev =>
-  $('#inpDbUrl').addEventListener(ev, e => {
-    localStorage.setItem(URL_KEY, e.target.value.trim());
-    syncRefresh();
-  }));
-
-$('#btnTestDb').addEventListener('click', async () => {
-  syncMsg('Testando conexão com o Firebase...', 'busy');
-  try {
-    const r = roomPath() || 'teste-conexao';
-    const res = await fetch(`${dbUrl()}/rooms/${r}.json`);
-    if (res.status === 404) throw new Error('Banco não existe nessa URL — crie o Realtime Database ou confira a URL.');
-    if (res.status === 401 || res.status === 403){
-      throw new Error('Regras do Firebase bloqueiam o acesso. Libere as regras no console do Firebase.');
-    }
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    syncMsg('✔ Conexão com o Firebase funcionando perfeitamente!', 'ok');
-    toast('✔ Conexão Firebase OK');
-  } catch (err) {
-    syncMsg('✕ ' + err.message, 'err');
-  }
-});
 
 $('#btnCloudSave').addEventListener('click', cloudSave);
 $('#btnCloudLoad').addEventListener('click', () => cloudLoad(false));
@@ -2023,10 +1947,11 @@ const btnForget = $('#btnForgetRoom');
 if (btnForget){
   btnForget.addEventListener('click', () => {
     const r = roomName();
-    if (!r) return toast('Você já está no Modo Local');
-    if (confirm(`Remover "${r}" da sua lista rápida de salas? Os dados salvos na nuvem NÃO serão apagados.`)){
+    if (confirm(`Remover "${r}" da sua lista rápida de guildas? Os dados salvos na nuvem NÃO serão apagados.`)){
       removeKnownRoom(r);
-      switchRoom('', false);
+      const remaining = getKnownRooms();
+      const next = remaining[0] || DEFAULT_ROOM;
+      switchRoom(next, true);
       toast(`"${r}" removido da lista rápida`);
     }
   });
@@ -2071,29 +1996,6 @@ $('#btnQClear').addEventListener('click', () => {
   }
 });
 
-// a topbar e a barra de busca mudam de altura conforme a largura; o cabeçalho fixo acompanha
-function ajustaTopo(){
-  const tb = document.querySelector('.topbar');
-  const h = tb ? tb.getBoundingClientRect().height : 68;
-  document.documentElement.style.setProperty('--topbar-h', Math.round(h) + 'px');
-
-  const ps = document.querySelector('.panel-search');
-  if (ps){
-    const sh = ps.getBoundingClientRect().height;
-    document.documentElement.style.setProperty('--search-h', Math.round(sh) + 'px');
-  }
-}
-addEventListener('resize', ajustaTopo);
-addEventListener('load', ajustaTopo);
-if (window.ResizeObserver){
-  const ro = new ResizeObserver(ajustaTopo);
-  const tb = document.querySelector('.topbar');
-  const ps = document.querySelector('.panel-search');
-  if (tb) ro.observe(tb);
-  if (ps) ro.observe(ps);
-}
-ajustaTopo();
-
 /* ---------- init ---------- */
 renderSlots();
 renderQuery();
@@ -2101,14 +2003,14 @@ renderList();
 renderRoomsSelect();
 updateBrandRoomPill();
 
-// Carrega automaticamente da nuvem no início se houver código de guilda salvo
-if (cloudOn() && roomName()) {
+// Carrega automaticamente da nuvem no início
+if (roomName()) {
   cloudLoad(true);
 }
 
 // Sincroniza automaticamente ao retornar para o app
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && cloudOn() && roomName()) {
+  if (document.visibilityState === 'visible' && roomName()) {
     cloudLoad(true);
   }
 });
@@ -2136,5 +2038,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c145f46e6b3f20',t:'MTc4OTU3NjQxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c15b3838dfa438',t:'MTc4OTU3NzI4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
