@@ -612,7 +612,10 @@ h1,h2,h3{margin:0}
 /* ===== modal sincronizar ===== */
 .modal-sync{width:min(480px,100%)}
 .modal-sync .modal-body{display:flex;flex-direction:column;gap:13px}
+.room-input-group{display:flex;gap:7px;align-items:center}
+.room-input-group input{flex:1;min-width:0}
 .sync-hint{margin:0;font-size:12px;color:#9c8055;line-height:1.5}
+.sync-hint b{color:var(--gold)}
 .sync-danger summary{color:#f0a5a5}
 .btn-danger{
   color:#f0a5a5!important;
@@ -831,12 +834,16 @@ img {
 
     <div class="modal-body">
       <label class="field">
-        <span>Código da guilda</span>
-        <input type="text" id="inpRoom" placeholder="ex.: minha-guilda" autocomplete="off" spellcheck="false">
+        <span>Código da guilda (sua sala na nuvem)</span>
+        <div class="room-input-group">
+          <input type="text" id="inpRoom" placeholder="Invente um nome (ex: cerco-da-guilda)" autocomplete="off" spellcheck="false">
+          <button class="btn btn-ghost btn-sm" id="btnGenCode" type="button" title="Gerar um código aleatório">🎲 Gerar</button>
+          <button class="btn btn-ghost btn-sm" id="btnCopyCode" type="button" title="Copiar código para enviar aos membros">📋 Copiar</button>
+        </div>
       </label>
       <p class="sync-hint">
-        Quem usar o mesmo código compartilha a mesma lista.
-        Escolha algo difícil de adivinhar — funciona como senha.
+        💡 <b>Você mesmo cria o código!</b> Digite o nome da sua guilda ou clique em <b>🎲 Gerar</b>.
+        Depois, clique em <b>⬆ Salvar na nuvem</b>. Para seus amigos acessarem os mesmos times, basta passar esse código para eles.
       </p>
 
       <div class="sync-status" id="syncStatus">Configure o Firebase para ativar a nuvem.</div>
@@ -1302,8 +1309,8 @@ function syncRefresh(){
   $('#btnCloudSave').disabled = !ok;
   $('#btnCloudLoad').disabled = !ok;
   if (!cloudOn()) return syncMsg('URL do banco inválida — confira em "Configuração avançada".', 'err');
-  syncMsg(r ? `Guilda "${r}" — ${entries.length} counter(s) neste aparelho.`
-            : 'Digite um código de guilda para ativar.');
+  syncMsg(r ? `Sala "${r}" — ${entries.length} counter(s) prontos para sincronizar.`
+            : '💡 Digite um nome acima ou clique em "🎲 Gerar" para criar sua sala.');
 }
 
 function extractEntries(data){
@@ -1443,6 +1450,42 @@ $('#syncModal').addEventListener('click', e => { if (e.target.id === 'syncModal'
     localStorage.setItem(ROOM_KEY, e.target.value.trim());
     syncRefresh();
   }));
+
+function generateRoomCode(){
+  const words = ['cerco', 'siege', 'guilda', 'tropa', 'sw', 'guerra'];
+  const pref = words[Math.floor(Math.random() * words.length)];
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return `${pref}-${num}`;
+}
+const btnGen = $('#btnGenCode');
+if (btnGen){
+  btnGen.addEventListener('click', () => {
+    const code = generateRoomCode();
+    $('#inpRoom').value = code;
+    localStorage.setItem(ROOM_KEY, code);
+    syncRefresh();
+    toast('✔ Código gerado: ' + code);
+  });
+}
+const btnCopy = $('#btnCopyCode');
+if (btnCopy){
+  btnCopy.addEventListener('click', async () => {
+    const val = $('#inpRoom').value.trim();
+    if (!val) return toast('Digite ou gere um código primeiro');
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(val);
+      } else {
+        const inp = $('#inpRoom');
+        inp.select();
+        document.execCommand('copy');
+      }
+      toast('✔ Código copiado: ' + val);
+    } catch {
+      toast('Código: ' + val);
+    }
+  });
+}
 ['input','change'].forEach(ev =>
   $('#inpDbUrl').addEventListener(ev, e => {
     localStorage.setItem(URL_KEY, e.target.value.trim());
@@ -1821,5 +1864,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2d267edcb451b29',t:'MTc4NzA3MTcwNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2d267edcb451b29',t:'MTc4NzA3MTcwNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c0a1e5bdb06227',t:'MTc4OTU2OTY5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
