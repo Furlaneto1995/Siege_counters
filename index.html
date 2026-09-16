@@ -985,25 +985,6 @@ const terms = m => [m.name, ...(m.alt || [])].map(norm);
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
-/* ---------- estado ---------- */
-let draft   = { def:[null,null,null], atk:[null,null,null] };
-const QUERY_KEY = 'sw_siege_query';
-function loadQuery(){
-  try {
-    const q = JSON.parse(localStorage.getItem(QUERY_KEY));
-    return Array.isArray(q) && q.length === 3 ? q : [null, null, null];
-  } catch { return [null, null, null]; }
-}
-function saveQuery(){
-  try { localStorage.setItem(QUERY_KEY, JSON.stringify(query)); } catch {}
-}
-let query = loadQuery();
-let editing = null;                 // id do counter em edição (null = novo)
-let entries = load();
-let picking = null;          // {side, index}
-let elFilter = 'all';
-let natFilter = 'all';   // filtro de estrelas naturais
-
 // declaradas com `function` para poderem ser usadas por load(), que roda antes
 function fixId(id){ return SA_ALIAS[id] || id; }
 function fixEntry(e){
@@ -1127,6 +1108,25 @@ function loadForRoom(r = roomPath()){
 function load(){
   return loadForRoom();
 }
+
+/* ---------- estado ---------- */
+let draft   = { def:[null,null,null], atk:[null,null,null] };
+const QUERY_KEY = 'sw_siege_query';
+function loadQuery(){
+  try {
+    const q = JSON.parse(localStorage.getItem(QUERY_KEY));
+    return Array.isArray(q) && q.length === 3 ? q : [null, null, null];
+  } catch { return [null, null, null]; }
+}
+function saveQuery(){
+  try { localStorage.setItem(QUERY_KEY, JSON.stringify(query)); } catch {}
+}
+let query = loadQuery();
+let editing = null;                 // id do counter em edição (null = novo)
+let entries = load();
+let picking = null;          // {side, index}
+let elFilter = 'all';
+let natFilter = 'all';   // filtro de estrelas naturais
 
 function persist(syncCloud = true){
   const k = roomStoreKey();
@@ -2102,5 +2102,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a21fcd665ac3eede',t:'MTc4NTE5ODkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2d267edcb451b29',t:'MTc4NzA3MTcwNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c0b9bbdb496227',t:'MTc4OTU3MDY2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c12d521a8f3f20',t:'MTc4OTU3NTQwMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
