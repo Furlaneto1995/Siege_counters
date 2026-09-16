@@ -872,16 +872,14 @@ img {
 
       <!-- Código ativo -->
       <label class="field">
-        <span>Código da guilda ativo</span>
+        <span>Código da guilda</span>
         <div class="room-input-group">
-          <input type="text" id="inpRoom" placeholder="Invente um nome (ex: cerco-da-guilda)" autocomplete="off" spellcheck="false">
-          <button class="btn btn-ghost btn-sm" id="btnApplyRoom" type="button" title="Trocar para este código">Abrir</button>
-          <button class="btn btn-ghost btn-sm" id="btnGenCode" type="button" title="Gerar um código aleatório">🎲 Gerar</button>
-          <button class="btn btn-ghost btn-sm" id="btnCopyCode" type="button" title="Copiar código para enviar aos membros">📋 Copiar</button>
+          <input type="text" id="inpRoom" placeholder="Ex: cd8" autocomplete="off" spellcheck="false">
+          <button class="btn btn-gold btn-sm" id="btnApplyRoom" type="button" title="Abrir código da guilda e carregar da nuvem">Abrir</button>
         </div>
       </label>
       <p class="sync-hint">
-        💡 Cada código possui sua <b>própria lista independente</b> de times salvos no app e na nuvem.
+        💡 Ao digitar um código e clicar em <b>Abrir</b>, os counters da guilda são carregados diretamente da nuvem. Novos times criados são salvos automaticamente na nuvem.
       </p>
 
       <div class="sync-status" id="syncStatus">Configure o Firebase para ativar a nuvem.</div>
@@ -1008,9 +1006,7 @@ function dbUrl(){
 const cloudOn = () => /^https:\/\/.+/.test(dbUrl());
 
 function roomName(){
-  const campo = $('#inpRoom');
-  const digitado = campo ? campo.value.trim() : '';
-  return digitado || (localStorage.getItem(ROOM_KEY) || '').trim();
+  return (localStorage.getItem(ROOM_KEY) || '').trim();
 }
 function roomPath(name = roomName()){
   return (name || '').toLowerCase().replace(/[.$#\[\]\/\s]+/g, '-');
@@ -1080,27 +1076,22 @@ function loadForRoom(r = roomPath()){
       if (Array.isArray(arr)) return arr.map(fixEntry);
     } catch {}
   }
-  // Migração suave dos counters legados para a sala ativa ou modo local
-  if (!localStorage.getItem(MIGRATED_KEY)){
+  // Se for Modo Local (r === ''), verifica counters legados
+  if (!r){
     const legacy = localStorage.getItem(STORE_LEGACY);
     if (legacy){
       try {
         const arr = JSON.parse(legacy);
-        if (Array.isArray(arr) && arr.length > 0){
-          localStorage.setItem(key, legacy);
-          localStorage.setItem(MIGRATED_KEY, '1');
-          return arr.map(fixEntry);
-        }
+        if (Array.isArray(arr) && arr.length > 0) return arr.map(fixEntry);
       } catch {}
     }
-    localStorage.setItem(MIGRATED_KEY, '1');
-  }
-  const bkp = localStorage.getItem(roomBackupKey(r));
-  if (bkp){
-    try {
-      const arr = JSON.parse(bkp);
-      if (Array.isArray(arr) && arr.length > 0) return arr.map(fixEntry);
-    } catch {}
+    const bkp = localStorage.getItem('sw_siege_counters_backup');
+    if (bkp){
+      try {
+        const arr = JSON.parse(bkp);
+        if (Array.isArray(arr) && arr.length > 0) return arr.map(fixEntry);
+      } catch {}
+    }
   }
   return [];
 }
@@ -1319,12 +1310,19 @@ function save(){
   }
 
   const wasEdit = editing !== null;
-  persist();
+  persist(true);
   clearDraft();
   closeReg();
   renderList();
   renderQuery();
-  toast(wasEdit ? '✔ Counter atualizado' : '✔ Counter salvo');
+
+  const activeRoom = roomName();
+  if (activeRoom && cloudOn()){
+    cloudAuto(true);
+    toast(wasEdit ? `✔ Alterações salvas na nuvem (${activeRoom})` : `✔ Time salvo na nuvem (${activeRoom})`);
+  } else {
+    toast(wasEdit ? '✔ Counter atualizado' : '✔ Counter salvo');
+  }
 }
 
 /* ---------- lista ---------- */
@@ -1367,7 +1365,8 @@ function cardEl(e, opts){
   const del = card.querySelector('.del');
   if (del) del.addEventListener('click', () => {
     entries = entries.filter(x => x.id !== e.id);
-    persist();
+    persist(true);
+    if (roomName() && cloudOn()) cloudAuto(true);
     renderList();
     renderQuery();
     toast('Counter removido');
@@ -1425,8 +1424,8 @@ function syncRefresh(){
   $('#btnCloudSave').disabled = !ok;
   $('#btnCloudLoad').disabled = !ok;
   if (!cloudOn()) return syncMsg('URL do banco inválida — confira em "Configuração avançada".', 'err');
-  syncMsg(r ? `Sala "${r}" — ${entries.length} counter(s) prontos para sincronizar.`
-            : '💡 Digite um nome acima ou clique em "🎲 Gerar" para criar sua sala.');
+  syncMsg(r ? `Código ativo: "${r}" — ${entries.length} counter(s) sincronizados.`
+            : '💡 Digite o código da guilda acima (ex: cd8) e clique em "Abrir".');
 }
 
 function extractEntries(data){
@@ -1443,18 +1442,19 @@ function extractEntries(data){
 }
 
 async function cloudSave(){
-  const r = roomPath();
-  if (!r){
+  const r = roomName();
+  const path = roomPath(r);
+  if (!r || !path){
     toast('Digite ou selecione um código de guilda');
     syncMsg('Defina o código da guilda antes de salvar.', 'err');
     return;
   }
-  addKnownRoom(roomName());
-  syncMsg(`Enviando ${entries.length} counter(s) da sala "${roomName()}" para a nuvem...`, 'busy');
+  addKnownRoom(r);
+  syncMsg(`Enviando ${entries.length} counter(s) de "${r}" para a nuvem...`, 'busy');
   try {
     const ts = Date.now();
-    setLastUpdated(ts);
-    const res = await fetch(`${dbUrl()}/rooms/${r}.json`, {
+    setLastUpdated(ts, path);
+    const res = await fetch(`${dbUrl()}/rooms/${path}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ updated: ts, entries }),
@@ -1463,8 +1463,8 @@ async function cloudSave(){
       throw new Error('Regras do Firebase bloqueando gravação (Permission denied).');
     }
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    syncMsg(`✔ ${entries.length} counter(s) salvos na nuvem para o código "${roomName()}".`, 'ok');
-    toast(`✔ Salvo na nuvem (${roomName()})`);
+    syncMsg(`✔ ${entries.length} counter(s) salvos na nuvem para "${r}".`, 'ok');
+    toast(`✔ Salvo na nuvem (${r})`);
     syncRefresh();
     renderRoomsSelect();
     updateBrandRoomPill();
@@ -1475,96 +1475,141 @@ async function cloudSave(){
 }
 
 async function cloudLoad(silent = false){
-  const r = roomPath();
-  if (!r){
+  const r = roomName();
+  const path = roomPath(r);
+  if (!r || !path){
     if (!silent){
       toast('Digite ou selecione um código de guilda');
       syncMsg('Defina o código da guilda antes de carregar.', 'err');
     }
     return;
   }
-  if (!silent) syncMsg(`Baixando counters da sala "${roomName()}"...`, 'busy');
+  if (!silent) syncMsg(`Baixando counters de "${r}" da nuvem...`, 'busy');
   try {
-    const res = await fetch(`${dbUrl()}/rooms/${r}.json`);
+    const res = await fetch(`${dbUrl()}/rooms/${path}.json`);
     if (res.status === 401 || res.status === 403){
       throw new Error('Regras do Firebase bloqueando leitura (Permission denied).');
     }
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (!data){
-      syncMsg(`Nenhum counter salvo na nuvem para "${roomName()}" ainda.`, 'err');
-      if (!silent) toast(`Nuvem vazia para "${roomName()}"`);
+      if (!silent){
+        syncMsg(`Código "${r}" ainda não possui counters salvos na nuvem.`, 'err');
+        toast(`Nuvem vazia para "${r}"`);
+      }
       return;
     }
     const remotos = extractEntries(data);
     const remoteUpdated = Number(data.updated) || 0;
-    const localUpdated  = getLastUpdated();
+    const localUpdated  = getLastUpdated(path);
 
     // Se é sincronização automática em segundo plano e os dados locais são mais recentes ou iguais, não sobrescreve
     if (silent && remoteUpdated && localUpdated && remoteUpdated <= localUpdated){
       return;
     }
 
-    if (!remotos.length){
-      if (!silent){
-        syncMsg(`Nenhum counter encontrado na nuvem para "${roomName()}".`, 'err');
-        toast(`Nuvem vazia para "${roomName()}" — counters locais mantidos`);
-      }
-      return;
-    }
-
-    // Carregamento individual: a nuvem para ESTA sala é a fonte da verdade
     entries = remotos;
-    setLastUpdated(remoteUpdated || Date.now());
-    persist(false); // salva apenas no store individual desta sala
+    setLastUpdated(remoteUpdated || Date.now(), path);
+    persist(false); // salva apenas no store local desta sala
     renderList();
     renderQuery();
     syncRefresh();
     renderRoomsSelect();
     updateBrandRoomPill();
-    syncMsg(`✔ ${entries.length} counter(s) carregados da nuvem para "${roomName()}".`, 'ok');
-    if (!silent) toast(`✔ ${entries.length} counter(s) carregado(s) (${roomName()})`);
+    syncMsg(`✔ ${entries.length} counter(s) carregados da nuvem para "${r}".`, 'ok');
+    if (!silent) toast(`✔ ${entries.length} counter(s) carregado(s) (${r})`);
   } catch (err) {
     syncMsg('✕ Falha ao carregar: ' + err.message, 'err');
     if (!silent) toast('✕ Erro ao carregar');
   }
 }
 
-function switchRoom(newRoom, autoLoadCloud = true){
-  const r = (newRoom || '').trim();
-  const currentKey = roomStoreKey();
+async function switchRoom(newRoom, fetchCloud = true){
+  const nextRoom = (newRoom || '').trim();
+  const prevRoom = roomName();
+  const prevPath = roomPath(prevRoom);
+  const nextPath = roomPath(nextRoom);
 
-  // 1. Salva a lista atual na sala anterior
-  try {
-    localStorage.setItem(currentKey, JSON.stringify(entries));
-    if (entries.length > 0){
-      localStorage.setItem(roomBackupKey(), JSON.stringify(entries));
+  // 1. Salva a lista atual na sala anterior (se não for a mesma sala)
+  if (prevPath !== nextPath){
+    const prevKey = roomStoreKey(prevPath);
+    try {
+      localStorage.setItem(prevKey, JSON.stringify(entries));
+      if (entries.length > 0){
+        localStorage.setItem(roomBackupKey(prevPath), JSON.stringify(entries));
+      }
+    } catch {}
+  }
+
+  // 2. Define a nova sala ativa
+  localStorage.setItem(ROOM_KEY, nextRoom);
+  if (nextRoom) addKnownRoom(nextRoom);
+
+  // 3. Atualiza campo de input se existir
+  const inp = $('#inpRoom');
+  if (inp) inp.value = nextRoom;
+
+  // 4. Limpa draft do builder
+  clearDraft();
+
+  // 5. Se for Modo Local (sem sala)
+  if (!nextRoom){
+    entries = loadForRoom('');
+    renderList();
+    renderQuery();
+    syncRefresh();
+    renderRoomsSelect();
+    updateBrandRoomPill();
+    return;
+  }
+
+  // 6. Ao abrir um código de guilda, busca os dados da nuvem
+  if (fetchCloud && cloudOn()){
+    syncMsg(`Buscando counters de "${nextRoom}" na nuvem...`, 'busy');
+    try {
+      const res = await fetch(`${dbUrl()}/rooms/${nextPath}.json`);
+      if (res.status === 401 || res.status === 403){
+        throw new Error('Permissão negada no Firebase.');
+      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+
+      if (data && typeof data === 'object'){
+        const remotos = extractEntries(data);
+        const remoteUpdated = Number(data.updated) || Date.now();
+        entries = remotos;
+        localStorage.setItem(roomStoreKey(nextPath), JSON.stringify(entries));
+        if (entries.length > 0){
+          localStorage.setItem(roomBackupKey(nextPath), JSON.stringify(entries));
+        }
+        setLastUpdated(remoteUpdated, nextPath);
+        syncMsg(`✔ ${entries.length} counter(s) carregados da nuvem para "${nextRoom}".`, 'ok');
+        toast(`✔ Guilda "${nextRoom}": ${entries.length} counter(s) carregados da nuvem`);
+      } else {
+        // Código novo na nuvem (data === null)
+        // Inicia do ZERO, sem continuar com counters que estavam abertos!
+        entries = [];
+        localStorage.setItem(roomStoreKey(nextPath), JSON.stringify([]));
+        setLastUpdated(Date.now(), nextPath);
+        syncMsg(`Código "${nextRoom}" iniciado do zero (0 counters).`, 'ok');
+        toast(`✔ Guilda "${nextRoom}" iniciada do zero (0 counters)`);
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar da nuvem:', err);
+      // Fallback offline: carrega do armazenamento local daquela guilda específica
+      entries = loadForRoom(nextPath);
+      syncMsg(`⚠️ Offline: usando ${entries.length} counters locais de "${nextRoom}".`, 'err');
+      toast(`⚠️ Offline: carregados ${entries.length} counter(s) locais de "${nextRoom}"`);
     }
-  } catch {}
+  } else {
+    entries = loadForRoom(nextPath);
+  }
 
-  // 2. Muda para a nova sala
-  localStorage.setItem(ROOM_KEY, r);
-  if (r) addKnownRoom(r);
-
-  // 3. Carrega a lista individual da nova sala
-  entries = loadForRoom(r);
-  persist(false);
-
-  // 4. Atualiza toda a interface
   renderList();
   renderQuery();
   syncRefresh();
   renderRoomsSelect();
   updateBrandRoomPill();
-
-  // 5. Se os campos existirem, atualiza os valores
-  const inp = $('#inpRoom');
-  if (inp) inp.value = r;
-
-  // 6. Se configurado, busca da nuvem automaticamente
-  if (autoLoadCloud && cloudOn() && r){
-    cloudLoad(true);
-  }
 }
 
 function renderRoomsSelect(){
@@ -1606,20 +1651,31 @@ function updateBrandRoomPill(){
 
 // salva na nuvem em segundo plano após cada alteração (se configurado)
 let autoTimer;
-function cloudAuto(){
-  const r = roomPath();
-  if (!cloudOn() || !r) return;
+function cloudAuto(immediate = false){
+  const r = roomName();
+  const path = roomPath(r);
+  if (!cloudOn() || !r || !path) return;
   clearTimeout(autoTimer);
-  autoTimer = setTimeout(async () => {
+  const doSave = async () => {
     try {
-      const ts = getLastUpdated() || Date.now();
-      await fetch(`${dbUrl()}/rooms/${r}.json`, {
+      const ts = getLastUpdated(path) || Date.now();
+      const res = await fetch(`${dbUrl()}/rooms/${path}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ updated: ts, entries }),
       });
-    } catch {}
-  }, 400);
+      if (res.ok){
+        syncMsg(`✔ Salvo na nuvem: "${r}" (${entries.length} counters)`, 'ok');
+      }
+    } catch (err) {
+      console.warn('Falha na sincronização automática:', err);
+    }
+  };
+  if (immediate){
+    doSave();
+  } else {
+    autoTimer = setTimeout(doSave, 350);
+  }
 }
 
 /* ---------- modal de sincronização ---------- */
@@ -1629,6 +1685,10 @@ function openSync(){
   $('#inpDbUrl').value = localStorage.getItem(URL_KEY) || FIREBASE_DEFAULT;
   syncRefresh();
   $('#syncModal').hidden = false;
+  setTimeout(() => {
+    const inp = $('#inpRoom');
+    if (inp) inp.select();
+  }, 80);
 }
 function closeSync(){ $('#syncModal').hidden = true; }
 
@@ -1641,7 +1701,7 @@ $('#syncModal').addEventListener('click', e => { if (e.target.id === 'syncModal'
 
 const selRooms = $('#selRooms');
 if (selRooms){
-  selRooms.addEventListener('change', e => {
+  selRooms.addEventListener('change', async e => {
     const val = e.target.value;
     if (val === '__new__'){
       $('#inpRoom').value = '';
@@ -1649,14 +1709,21 @@ if (selRooms){
       syncRefresh();
       return;
     }
-    switchRoom(val, true);
+    await switchRoom(val, true);
+    closeSync();
   });
 }
 
-function applyTypedRoom(){
-  const val = $('#inpRoom').value.trim();
-  switchRoom(val, true);
-  toast(val ? `✔ Código ativo: ${val}` : '✔ Modo local ativo');
+async function applyTypedRoom(){
+  const val = ($('#inpRoom').value || '').trim();
+  if (!val){
+    await switchRoom('', false);
+    toast('✔ Modo local ativo');
+    closeSync();
+    return;
+  }
+  await switchRoom(val, true);
+  closeSync();
 }
 const btnApply = $('#btnApplyRoom');
 if (btnApply) btnApply.addEventListener('click', applyTypedRoom);
@@ -1671,40 +1738,6 @@ $('#inpRoom').addEventListener('keydown', e => {
     syncRefresh();
   }));
 
-function generateRoomCode(){
-  const words = ['cerco', 'siege', 'guilda', 'tropa', 'sw', 'guerra'];
-  const pref = words[Math.floor(Math.random() * words.length)];
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `${pref}-${num}`;
-}
-const btnGen = $('#btnGenCode');
-if (btnGen){
-  btnGen.addEventListener('click', () => {
-    const code = generateRoomCode();
-    $('#inpRoom').value = code;
-    switchRoom(code, false);
-    toast('✔ Código gerado e ativado: ' + code);
-  });
-}
-const btnCopy = $('#btnCopyCode');
-if (btnCopy){
-  btnCopy.addEventListener('click', async () => {
-    const val = $('#inpRoom').value.trim();
-    if (!val) return toast('Digite ou gere um código primeiro');
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText){
-        await navigator.clipboard.writeText(val);
-      } else {
-        const inp = $('#inpRoom');
-        inp.select();
-        document.execCommand('copy');
-      }
-      toast('✔ Código copiado: ' + val);
-    } catch {
-      toast('Código: ' + val);
-    }
-  });
-}
 ['input','change'].forEach(ev =>
   $('#inpDbUrl').addEventListener(ev, e => {
     localStorage.setItem(URL_KEY, e.target.value.trim());
@@ -1950,7 +1983,8 @@ if (restoreBtn){
       const bkp = JSON.parse(localStorage.getItem(roomBackupKey()) || localStorage.getItem(roomStoreKey()) || '[]');
       if (Array.isArray(bkp) && bkp.length > 0){
         entries = bkp.map(fixEntry);
-        persist(false);
+        persist(true);
+        if (roomName() && cloudOn()) cloudAuto(true);
         renderList();
         renderQuery();
         syncRefresh();
@@ -1972,16 +2006,16 @@ $('#fileImport').addEventListener('change', e => {
 $('#btnClearAll').addEventListener('click', async () => {
   const rName = roomName() || 'Modo Local';
   if (!entries.length) return toast(`A lista de "${rName}" já está vazia`);
-  if (confirm(`Apagar todos os ${entries.length} counters da sala "${rName}"? Isso não afetará outras salas.`)){
+  if (confirm(`Apagar todos os ${entries.length} counters da guilda "${rName}"? Isso não afetará outras guildas.`)){
     entries = [];
-    persist(false);
+    persist(true);
+    if (cloudOn() && roomName()){
+      cloudAuto(true);
+    }
     renderList();
     renderQuery();
     renderRoomsSelect();
     updateBrandRoomPill();
-    if (cloudOn() && roomPath()){
-      await cloudSave();
-    }
     toast(`Counters de "${rName}" foram apagados`);
   }
 });
@@ -2102,5 +2136,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c12d521a8f3f20',t:'MTc4OTU3NTQwMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c145f46e6b3f20',t:'MTc4OTU3NjQxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
