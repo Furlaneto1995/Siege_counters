@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"> 
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Siege Counters — SW</title>
 
@@ -944,7 +944,7 @@ img {
     </div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" id="btnInstall" type="button" hidden title="Instalar como aplicativo">⤓ Instalar</button>
-      <button class="btn-top-admin" id="btnTopAdmin" type="button" title="Painel do Administrador: Ver membros das guildas e perfis">
+      <button class="btn-top-admin" id="btnTopAdmin" type="button" title="Painel do Administrador: Ver membros das guildas e perfis" style="display:none;">
         <span>👑</span><span class="top-adm-label">Membros ADM</span>
       </button>
       <button class="btn btn-add" id="btnNew" type="button" title="Registrar novo counter">
@@ -1183,7 +1183,7 @@ img {
       </div>
 
       <!-- ============ ÁREA DO ADMINISTRADOR: MEMBROS DAS GUILDAS ============ -->
-      <div class="guild-section-box" style="border-color:rgba(218,165,32,0.45); background:linear-gradient(135deg, rgba(32,18,8,0.92), rgba(18,10,4,0.96)); padding:12px;">
+      <div class="guild-section-box" id="adminMenuSection" style="display:none; border-color:rgba(218,165,32,0.45); background:linear-gradient(135deg, rgba(32,18,8,0.92), rgba(18,10,4,0.96)); padding:12px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:20px;">👑</span>
@@ -1227,6 +1227,12 @@ img {
           </div>
         </div>
       </details>
+
+      <div style="text-align:center; margin-top:8px;" id="adminUnlockLinkWrap">
+        <button type="button" id="btnAdminUnlockLink" class="btn btn-ghost btn-sm" style="font-size:10.5px; color:#8a7050; border:none; background:none; cursor:pointer;" title="Entrar com a senha mestra do Administrador">
+          🔒 Entrar como Administrador
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1328,7 +1334,10 @@ img {
           <span style="font-size:11px; color:#c8a878;">Membros participantes das guildas e perfis na nuvem</span>
         </div>
       </div>
-      <button class="modal-close" id="adminClose" type="button">✕</button>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button class="btn btn-ghost btn-sm" id="btnAdminLogout" type="button" title="Bloquear modo administrador neste navegador" style="font-size:10.5px; padding:3px 8px; color:#ff9d9d; border-color:rgba(255,120,120,.35);">🔒 Sair do ADM</button>
+        <button class="modal-close" id="adminClose" type="button">✕</button>
+      </div>
     </div>
 
     <div class="modal-body" style="gap:11px;">
@@ -2627,6 +2636,7 @@ async function cloudLoad(silent = false){
     updateBrandRoomPill();
     syncMsg(`✔ ${entries.length} counter(s) carregados da nuvem para "${r}".`, 'ok');
     if (!silent) toast(`✔ ${entries.length} counter(s) carregado(s) (${r})`);
+    syncUserGuildAccess();
   } catch (err) {
     syncMsg('✕ Falha ao carregar: ' + err.message, 'err');
     if (!silent) toast('✕ Erro ao carregar');
@@ -3328,6 +3338,7 @@ function openSync(){
   const inpG = $('#inpGuildCode');
   if (inpG) inpG.value = '';
   updateGuildMenuUI();
+  updateAdminUIState();
   syncRefresh();
   updateBrandNickPill();
   updateBrandRoomPill();
@@ -3798,11 +3809,72 @@ if (inpAdminCopy){
   });
 }
 
-/* ---------- modal secreto do administrador ---------- */
+/* ---------- controle e segurança do administrador ---------- */
+const ADMIN_NICKS = ['furland'];
+const ADMIN_PASSWORDS = ['2424', 'furland', 'cd8adm', 'admin', 'admin2424', '7834'];
+
+function isAdminAuthorized(){
+  if (window.__isAdminAuth) return true;
+  try {
+    if (localStorage.getItem('siege_admin_locked') === '1') return false;
+    if (localStorage.getItem('siege_admin_auth') === '1') return true;
+    const nick = (userNick() || '').toLowerCase().trim();
+    if (ADMIN_NICKS.includes(nick)){
+      window.__isAdminAuth = true;
+      localStorage.setItem('siege_admin_auth', '1');
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+function requireAdminAuth(onSuccess){
+  if (isAdminAuthorized()){
+    if (typeof onSuccess === 'function') onSuccess();
+    return;
+  }
+  const pass = prompt('🔒 Acesso Restrito ao Administrador:\nDigite a senha do Administrador para acessar:');
+  if (!pass) return;
+  const clean = pass.trim().toLowerCase();
+  if (ADMIN_PASSWORDS.includes(clean)){
+    window.__isAdminAuth = true;
+    try {
+      localStorage.setItem('siege_admin_auth', '1');
+      localStorage.removeItem('siege_admin_locked');
+    } catch {}
+    updateAdminUIState();
+    toast('✔ Acesso de Administrador autenticado com sucesso!');
+    if (typeof onSuccess === 'function') onSuccess();
+  } else {
+    toast('✕ Senha incorreta! Acesso restrito apenas ao administrador.');
+  }
+}
+
+function updateAdminUIState(){
+  const isAdm = isAdminAuthorized();
+  const topAdmBtn = $('#btnTopAdmin');
+  if (topAdmBtn){
+    topAdmBtn.style.display = isAdm ? 'inline-flex' : 'none';
+  }
+  const adminBox = $('#adminMenuSection');
+  if (adminBox){
+    adminBox.style.display = isAdm ? 'block' : 'none';
+  }
+  const linkWrap = $('#adminUnlockLinkWrap');
+  if (linkWrap){
+    linkWrap.style.display = isAdm ? 'none' : 'block';
+  }
+}
+
+/* ---------- modal do administrador ---------- */
 let currentAdminTab = 'members';
 let targetedAdminGuildSlug = '';
 
 function openAdminModal(defaultTab = 'members', targetGuild = ''){
+  if (!isAdminAuthorized()){
+    requireAdminAuth(() => openAdminModal(defaultTab, targetGuild));
+    return;
+  }
   window.__isLeader = true;
   try {
     localStorage.setItem('siege_is_leader', '1');
@@ -3817,6 +3889,7 @@ function openAdminModal(defaultTab = 'members', targetGuild = ''){
   targetedAdminGuildSlug = targetGuild || '';
   switchAdminTab(defaultTab);
   updateAdminTotalMembersBadge();
+  updateAdminUIState();
 }
 
 function closeAdminModal(){
@@ -3876,12 +3949,30 @@ if (adminModal){
   });
 }
 
+const btnAdminLogout = $('#btnAdminLogout');
+if (btnAdminLogout){
+  btnAdminLogout.addEventListener('click', () => {
+    window.__isAdminAuth = false;
+    try {
+      localStorage.removeItem('siege_admin_auth');
+      localStorage.setItem('siege_admin_locked', '1');
+    } catch {}
+    closeAdminModal();
+    updateAdminUIState();
+    toast('🔒 Modo Administrador bloqueado neste dispositivo.');
+  });
+}
+
 const btnAdminRefresh = $('#btnAdminRefresh');
 if (btnAdminRefresh) btnAdminRefresh.addEventListener('click', loadAdminProfilesList);
 
 const btnAdminApply = $('#btnAdminApplyRoom');
 if (btnAdminApply){
   btnAdminApply.addEventListener('click', async () => {
+    if (!isAdminAuthorized()){
+      toast('✕ Apenas o administrador.');
+      return;
+    }
     const val = ($('#inpAdminRoom').value || '').trim();
     if (!val){
       toast('Digite o nome do perfil');
@@ -3898,6 +3989,10 @@ if (inpAdminRoom){
   inpAdminRoom.addEventListener('keydown', async e => {
     if (e.key === 'Enter'){
       e.preventDefault();
+      if (!isAdminAuthorized()){
+        toast('✕ Apenas o administrador.');
+        return;
+      }
       const val = (inpAdminRoom.value || '').trim();
       if (!val){
         toast('Digite o nome do perfil');
@@ -3943,7 +4038,21 @@ if (btnViewCurGM){
   });
 }
 
+const btnAdminUnlockLink = $('#btnAdminUnlockLink');
+if (btnAdminUnlockLink){
+  btnAdminUnlockLink.addEventListener('click', () => {
+    requireAdminAuth(() => {
+      closeSync();
+      openAdminModal('members');
+    });
+  });
+}
+
 async function setRoomCode(rName, newCode){
+  if (!isAdminAuthorized()){
+    toast('✕ Apenas o administrador pode alterar códigos.');
+    return;
+  }
   const clean = (newCode || '').trim();
   if (!clean || !/^\d{4}$/.test(clean)) return;
   const p = roomPath(rName);
@@ -3969,7 +4078,7 @@ async function setRoomCode(rName, newCode){
 }
 
 /* ---------- controle de membros de guildas na nuvem ---------- */
-async function registerUserInGuild(nick, guildSlug, code, isLeader = false){
+async function registerUserInGuild(nick, guildSlug, code, isLeader = false, guildName = '', guildCode = ''){
   const cleanNick = (nick || '').trim();
   const gSlug = (guildSlug || '').toLowerCase().trim();
   if (!cleanNick || !gSlug) return;
@@ -3982,28 +4091,152 @@ async function registerUserInGuild(nick, guildSlug, code, isLeader = false){
     joinedAt: Date.now(),
     lastActive: Date.now()
   };
+
+  const gName = guildName || gSlug.toUpperCase();
+  const gCode = guildCode || (gSlug === 'cd8' ? '2424' : '');
+
   try {
+    // 1. Salva na lista de membros da guilda
     await fetch(`${dbUrl()}/rooms/_guild_members/${gSlug}/${userKey}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
+    });
+
+    // 2. Salva mapeamento direto para o código do usuário (para ele receber acesso automático)
+    if (userCodeVal && /^\d{4}$/.test(userCodeVal)){
+      await fetch(`${dbUrl()}/rooms/_user_guilds/${userCodeVal}/${gSlug}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: gSlug, name: gName, code: gCode, addedAt: Date.now() })
+      });
+    }
+
+    // 3. Salva também por nick
+    await fetch(`${dbUrl()}/rooms/_user_guilds_by_nick/${userKey}/${gSlug}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: gSlug, name: gName, code: gCode, addedAt: Date.now() })
     });
   } catch (err){
     console.warn('Erro ao registrar membro na guilda:', err);
   }
 }
 
-async function removeUserFromGuild(nick, guildSlug){
+async function removeUserFromGuild(nick, guildSlug, code){
   const cleanNick = (nick || '').trim();
   const gSlug = (guildSlug || '').toLowerCase().trim();
   if (!cleanNick || !gSlug) return;
   const userKey = encodeURIComponent(cleanNick.toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_'));
+  const userCodeVal = code || userCode() || getOrGenerateRoomCode(cleanNick);
+
   try {
     await fetch(`${dbUrl()}/rooms/_guild_members/${gSlug}/${userKey}.json`, {
       method: 'DELETE'
     });
+    if (userCodeVal && /^\d{4}$/.test(userCodeVal)){
+      await fetch(`${dbUrl()}/rooms/_user_guilds/${userCodeVal}/${gSlug}.json`, {
+        method: 'DELETE'
+      });
+    }
+    await fetch(`${dbUrl()}/rooms/_user_guilds_by_nick/${userKey}/${gSlug}.json`, {
+      method: 'DELETE'
+    });
   } catch (err){
     console.warn('Erro ao remover membro da guilda:', err);
+  }
+}
+
+/* Sincronização automática do acesso à guilda no perfil do jogador */
+let lastGuildSyncCheck = 0;
+async function syncUserGuildAccess(force = false){
+  const now = Date.now();
+  if (!force && now - lastGuildSyncCheck < 4000) return;
+  lastGuildSyncCheck = now;
+
+  const myNick = userNick();
+  const myCode = userCode();
+  if (!myNick && !myCode) return;
+
+  try {
+    let foundGuilds = [];
+
+    // 1. Busca por código de 4 números
+    if (myCode && /^\d{4}$/.test(myCode)){
+      try {
+        const resCode = await fetch(`${dbUrl()}/rooms/_user_guilds/${myCode}.json`);
+        if (resCode.ok){
+          const dataCode = await resCode.json();
+          if (dataCode && typeof dataCode === 'object'){
+            foundGuilds.push(...Object.values(dataCode).filter(Boolean));
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Busca por nick
+    if (myNick){
+      try {
+        const userKey = encodeURIComponent(myNick.toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_'));
+        const resNick = await fetch(`${dbUrl()}/rooms/_user_guilds_by_nick/${userKey}.json`);
+        if (resNick.ok){
+          const dataNick = await resNick.json();
+          if (dataNick && typeof dataNick === 'object'){
+            foundGuilds.push(...Object.values(dataNick).filter(Boolean));
+          }
+        }
+      } catch {}
+    }
+
+    // 3. Fallback inteligente em _guild_members
+    if (!foundGuilds.length){
+      try {
+        const resGm = await fetch(`${dbUrl()}/rooms/_guild_members.json`);
+        if (resGm.ok){
+          const dataGm = await resGm.json();
+          if (dataGm && typeof dataGm === 'object'){
+            for (const [gSlug, members] of Object.entries(dataGm)){
+              if (members && typeof members === 'object'){
+                for (const m of Object.values(members)){
+                  if (m && ((myCode && String(m.code) === String(myCode)) || (myNick && norm(m.nick || '') === norm(myNick)))){
+                    foundGuilds.push({ slug: gSlug, name: gSlug.toUpperCase(), code: (gSlug === 'cd8' ? '2424' : '') });
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+
+    const curActiveSlug = getActiveGuildSlug();
+
+    // Se o usuário possui guilda vinculada:
+    if (foundGuilds.length > 0){
+      const g = foundGuilds[0];
+      if (!isGuildUnlocked(g.slug) || curActiveSlug !== g.slug){
+        unlockGuild(g.slug, g.code || (g.slug === 'cd8' ? '2424' : ''), g.name || g.slug.toUpperCase());
+        toast(`🏰 Seu acesso à guilda "${g.name || g.slug.toUpperCase()}" foi liberado pelo Administrador!`);
+      }
+    } else {
+      // Se não encontrou nenhuma guilda ativa na nuvem e o usuário não é líder nem admin:
+      if (curActiveSlug && !isGuildLeader(curActiveSlug) && !isAdminAuthorized()){
+        try {
+          const uKey = encodeURIComponent(myNick.toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_'));
+          const checkRes = await fetch(`${dbUrl()}/rooms/_guild_members/${curActiveSlug}/${uKey}.json`);
+          if (checkRes.ok){
+            const checkData = await checkRes.json();
+            if (!checkData){
+              lockGuild();
+              toast('Você foi desconectado da guilda pela administração.');
+            }
+          }
+        } catch {}
+      }
+    }
+  } catch (err){
+    console.warn('Erro ao sincronizar acesso da guilda:', err);
   }
 }
 
@@ -4140,6 +4373,10 @@ async function loadAdminProfilesList(){
       }
 
       card.querySelector('.btn-admin-ren').addEventListener('click', async () => {
+        if (!isAdminAuthorized()){
+          toast('✕ Apenas o administrador pode renomear perfis.');
+          return;
+        }
         const newName = prompt(`Novo nome para o perfil "${p.name}":`, p.name);
         if (!newName || newName.trim() === p.name) return;
         const ok = await renameProfile(p.name, newName.trim());
@@ -4147,6 +4384,10 @@ async function loadAdminProfilesList(){
       });
 
       card.querySelector('.btn-admin-code').addEventListener('click', async () => {
+        if (!isAdminAuthorized()){
+          toast('✕ Apenas o administrador pode alterar códigos.');
+          return;
+        }
         const curCode = isGuildProf ? '' : (p.code || getOrGenerateRoomCode(p.name));
         const newCode = prompt(`Novo código de 4 números para "${p.name}":`, curCode);
         if (!newCode || newCode.trim() === curCode) return;
@@ -4176,6 +4417,10 @@ async function loadAdminProfilesList(){
       });
 
       card.querySelector('.btn-admin-del').addEventListener('click', async () => {
+        if (!isAdminAuthorized()){
+          toast('✕ Apenas o administrador pode excluir perfis.');
+          return;
+        }
         if (!confirm(`⚠️ ATENÇÃO ADMIN:\nDeseja realmente excluir permanentemente o perfil "${p.name}" (${count} counters) da nuvem?\nEsta ação não poderá ser desfeita.`)){
           return;
         }
@@ -4295,8 +4540,13 @@ async function loadAdminGuildMembersList(filterGuildSlug = ''){
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:18px;">🏰</span>
           <div>
-            <span style="font-weight:800; font-size:14px; color:var(--gold);">${esc(gInfo.name || gSlug.toUpperCase())}</span>
-            <span class="user-code-badge" style="font-size:10px; margin-left:6px;">${membersList.length} participante${membersList.length !== 1 ? 's' : ''}</span>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span style="font-weight:800; font-size:14px; color:var(--gold);">${esc(gInfo.name || gSlug.toUpperCase())}</span>
+              <span class="user-code-badge" style="font-size:10px;">${membersList.length} participante${membersList.length !== 1 ? 's' : ''}</span>
+              <button class="btn btn-gold btn-sm btn-admin-add-member" type="button" title="Adicionar membro nesta guilda por código de 4 números" style="padding:2px 7px; font-size:11px; font-weight:800; display:inline-flex; align-items:center; gap:3px;">
+                <span>＋</span><span>Adicionar por código</span>
+              </button>
+            </div>
           </div>
         </div>
         <div style="display:flex; gap:6px;">
@@ -4313,6 +4563,82 @@ async function loadAdminGuildMembersList(filterGuildSlug = ''){
             loadAdminGuildMembersList();
           });
         }
+      }
+
+      const btnAddMem = gHeader.querySelector('.btn-admin-add-member');
+      if (btnAddMem){
+        btnAddMem.addEventListener('click', async () => {
+          if (!isAdminAuthorized()){
+            toast('✕ Apenas o administrador pode adicionar membros.');
+            return;
+          }
+          const inputCode = prompt(`Adicionar membro na guilda "${gInfo.name}":\nDigite o código de 4 números do jogador (ex: 7834):`);
+          if (!inputCode) return;
+          const cleanCode = inputCode.trim();
+          if (!/^\d{4}$/.test(cleanCode)){
+            toast('O código deve conter exatamente 4 números (ex: 7834)');
+            return;
+          }
+
+          toast('Buscando perfil do jogador...');
+          let foundNick = '';
+          let foundPath = '';
+
+          // 1. Busca em _codes
+          try {
+            const resCode = await fetch(`${dbUrl()}/rooms/_codes/${cleanCode}.json`);
+            if (resCode.ok){
+              const cData = await resCode.json();
+              if (cData && cData.name && !cData.isGuild){
+                foundNick = cData.name;
+                foundPath = cData.path || roomPath(foundNick);
+              }
+            }
+          } catch {}
+
+          // 2. Busca em _index
+          if (!foundNick){
+            try {
+              const resIdx = await fetch(`${dbUrl()}/rooms/_index.json`);
+              if (resIdx.ok){
+                const idxData = await resIdx.json();
+                if (idxData && typeof idxData === 'object'){
+                  for (const item of Object.values(idxData)){
+                    if (item && item.code === cleanCode && !item.isGuild){
+                      foundNick = item.name;
+                      foundPath = item.path || roomPath(foundNick);
+                      break;
+                    }
+                  }
+                }
+              }
+            } catch {}
+          }
+
+          if (!foundNick){
+            foundNick = prompt(`O código #${cleanCode} ainda não possui perfil salvo na nuvem.\nDigite o Nick deste jogador:`);
+            if (!foundNick || !foundNick.trim()){
+              toast('Operação cancelada: Nick não informado.');
+              return;
+            }
+            foundNick = foundNick.trim();
+          }
+
+          // Registra o código se ainda não existia
+          try {
+            await fetch(`${dbUrl()}/rooms/_codes/${cleanCode}.json`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: foundNick, path: foundPath || roomPath(foundNick), code: cleanCode })
+            });
+          } catch {}
+
+          // Adiciona o membro à guilda no banco e vincula no perfil dele
+          await registerUserInGuild(foundNick, gSlug, cleanCode, false, gInfo.name, gInfo.code || (gSlug === 'cd8' ? '2424' : ''));
+          toast(`✔ Jogador "${foundNick}" (#${cleanCode}) adicionado à guilda "${gInfo.name}"!`);
+          loadAdminGuildMembersList(filterGuildSlug);
+          updateAdminTotalMembersBadge();
+        });
       }
 
       gHeader.querySelector('.btn-admin-open-g').addEventListener('click', async () => {
@@ -4371,8 +4697,12 @@ async function loadAdminGuildMembersList(filterGuildSlug = ''){
           }
 
           mCard.querySelector('.btn-admin-kick-user').addEventListener('click', async () => {
+            if (!isAdminAuthorized()){
+              toast('✕ Apenas o administrador pode remover membros.');
+              return;
+            }
             if (confirm(`Remover o membro "${m.nick}" da guilda "${gInfo.name}"?`)){
-              await removeUserFromGuild(m.nick, gSlug);
+              await removeUserFromGuild(m.nick, gSlug, m.code);
               toast(`✔ Membro "${m.nick}" removido da guilda.`);
               loadAdminGuildMembersList(filterGuildSlug);
               updateAdminTotalMembersBadge();
@@ -4788,6 +5118,7 @@ updateBrandRoomPill();
 updateBrandNickPill();
 updateSwitcherState();
 updateGuildMenuUI();
+updateAdminUIState();
 
 // Verifica se o usuário já tem um nick cadastrado
 if (!userNick()){
@@ -4806,6 +5137,7 @@ if (!userNick()){
     registerUserInRoom(userNick(), roomName());
     cloudLoad(true);
   }
+  syncUserGuildAccess();
   const curGuild = getActiveGuildSlug();
   if (curGuild && isGuildUnlocked(curGuild)){
     registerUserInGuild(userNick(), curGuild, userCode(), isGuildLeader(curGuild));
@@ -4819,6 +5151,8 @@ if (!userNick()){
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && roomName()) {
     cloudLoad(true);
+    syncUserGuildAccess();
+    updateAdminUIState();
   }
 });
 
@@ -4851,5 +5185,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c87e6f9f531f6a',t:'MTc4OTY1MjEyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c9c5b33b15f203',t:'MTc4OTY2NTUyOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
