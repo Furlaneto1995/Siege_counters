@@ -717,7 +717,8 @@ h1,h2,h3{margin:0}
 .sync-adv .sync-actions{margin-top:9px}
 
 /* ===== modal admin ===== */
-.modal-admin{width:min(520px,100%)}
+.modal-admin{width:min(580px,100%)}
+.admin-tab-btn.active{background:rgba(242,201,105,.2)!important;color:var(--gold)!important;border-color:var(--gold)!important;font-weight:700}
 .admin-profiles-list{
   display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;
   padding-right:4px;margin-top:8px;
@@ -822,6 +823,21 @@ h1,h2,h3{margin:0}
 @media (max-width:540px){
   .brand h1{font-size:18px}
   .profile-switch-btn{padding:3px 8px;font-size:11px}
+  .top-adm-label{display:none}
+}
+
+.btn-top-admin {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:5px 10px; font-size:12px; font-weight:800;
+  color:var(--gold); border:1px solid rgba(218,165,32,0.45);
+  background:linear-gradient(180deg, rgba(60,35,18,.85), rgba(35,20,10,.95));
+  border-radius:5px; cursor:pointer;
+  transition:all .15s ease;
+}
+.btn-top-admin:hover {
+  filter:brightness(1.2);
+  border-color:var(--gold);
+  box-shadow:0 0 8px rgba(242,201,105,.3);
 }
 
 /* ===== modal notas de atualização ===== */
@@ -928,6 +944,9 @@ img {
     </div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" id="btnInstall" type="button" hidden title="Instalar como aplicativo">⤓ Instalar</button>
+      <button class="btn-top-admin" id="btnTopAdmin" type="button" title="Painel do Administrador: Ver membros das guildas e perfis">
+        <span>👑</span><span class="top-adm-label">Membros ADM</span>
+      </button>
       <button class="btn btn-add" id="btnNew" type="button" title="Registrar novo counter">
         <span class="plus">＋</span><span class="add-label">Novo counter</span>
       </button>
@@ -1155,8 +1174,36 @@ img {
                 <div style="font-size:11px; color:#85d685;">✔ Acesso liberado no topo ao lado do seu nome</div>
               </div>
             </div>
-            <button class="btn btn-ghost btn-sm btn-danger" id="btnRemoveGuildAccess" type="button" title="Desconectar desta guilda">Sair da guilda</button>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-ghost btn-sm" id="btnViewCurrentGuildMembers" type="button" title="Ver quem está conectado nesta guilda" style="font-size:11px; padding:3px 8px; color:var(--gold); border-color:rgba(218,165,32,.4);">👥 Membros</button>
+              <button class="btn btn-ghost btn-sm btn-danger" id="btnRemoveGuildAccess" type="button" title="Desconectar desta guilda" style="font-size:11px; padding:3px 8px;">Sair</button>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ============ ÁREA DO ADMINISTRADOR: MEMBROS DAS GUILDAS ============ -->
+      <div class="guild-section-box" style="border-color:rgba(218,165,32,0.45); background:linear-gradient(135deg, rgba(32,18,8,0.92), rgba(18,10,4,0.96)); padding:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">👑</span>
+            <div>
+              <span style="font-size:13px; font-weight:800; color:var(--gold);">Área do Administrador</span>
+              <span style="font-size:11px; color:#c8a878; display:block;">Controle de membros e guildas</span>
+            </div>
+          </div>
+          <span class="user-code-badge" style="font-size:10px; background:rgba(218,165,32,0.2); border-color:rgba(218,165,32,0.5); color:var(--gold);">PAINEL ADM</span>
+        </div>
+        <p style="font-size:11.5px; color:#e0cca8; margin:0 0 10px 0; line-height:1.4;">
+          Consulte quais membros estão participando de cada guilda, veja os Nicks, códigos de 4 dígitos, datas de acesso e gerencie os participantes.
+        </p>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-gold btn-sm" id="btnMenuOpenGuildMembers" type="button" style="flex:1; justify-content:center; font-weight:800; padding:8px 12px; font-size:12.5px;">
+            🏰 Ver Membros das Guildas
+          </button>
+          <button class="btn btn-ghost btn-sm" id="btnMenuOpenAdminFull" type="button" style="justify-content:center; padding:8px 10px; font-size:12px;" title="Ver todos os perfis salvos na nuvem">
+            📋 Perfis Nuvem
+          </button>
         </div>
       </div>
 
@@ -1270,46 +1317,78 @@ img {
   </div>
 </div>
 
-<!-- ============ MODAL SECRETO: ADMIN (clicar e segurar na bandeira) ============ -->
+<!-- ============ MODAL DO ADMINISTRADOR: MEMBROS E PERFIS ============ -->
 <div class="modal-backdrop" id="adminModal" hidden>
   <div class="modal modal-admin">
     <div class="modal-head">
       <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:20px;">👑</span>
+        <span style="font-size:22px;">👑</span>
         <div>
           <h3 style="font-size:16px; margin:0;">Painel do Administrador</h3>
-          <span style="font-size:11px; color:#c8a878;">Gerenciamento completo de todos os perfis na nuvem</span>
+          <span style="font-size:11px; color:#c8a878;">Membros participantes das guildas e perfis na nuvem</span>
         </div>
       </div>
       <button class="modal-close" id="adminClose" type="button">✕</button>
     </div>
 
-    <div class="modal-body" style="gap:13px;">
-      <!-- Importar perfil (Exclusivo Admin) -->
-      <label class="field">
-        <span>Importar / Abrir perfil</span>
-        <div class="room-input-group">
-          <input type="text" id="inpAdminRoom" placeholder="Nome do perfil ou código (ex: cd8)" autocomplete="off" spellcheck="false">
-          <button class="btn btn-gold btn-sm" id="btnAdminApplyRoom" type="button" title="Importar e abrir este perfil no app">Abrir</button>
-        </div>
-      </label>
-
-      <!-- Copiar counters de outro código para o perfil ativo (Exclusivo Admin) -->
-      <label class="field" style="margin:0;">
-        <span>Copiar counters de outro código para o perfil ativo:</span>
-        <div class="room-input-group">
-          <input type="text" id="inpAdminCopyFrom" placeholder="Código de 4 números ou perfil (ex: 7834)" autocomplete="off" spellcheck="false">
-          <button class="btn btn-gold btn-sm" id="btnAdminCopyFrom" type="button" title="Copiar counters deste código para o perfil atual">Copiar</button>
-        </div>
-      </label>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-        <span style="font-size:13px; font-weight:800; color:var(--gold);">Perfis salvos na nuvem</span>
-        <button class="btn btn-ghost btn-sm" id="btnAdminRefresh" type="button" title="Recarregar lista da nuvem">↺ Atualizar</button>
+    <div class="modal-body" style="gap:11px;">
+      <!-- Abas de navegação do Administrador -->
+      <div class="admin-tab-nav" style="display:flex; gap:6px; border-bottom:1px solid rgba(140,105,50,.35); padding-bottom:8px;">
+        <button type="button" class="btn btn-ghost btn-sm admin-tab-btn active" id="btnAdminTabMembers" style="flex:1; justify-content:center; font-weight:800;">
+          🏰 Membros das Guildas <span id="adminTotalMembersBadge" class="user-code-badge" style="font-size:10px; margin-left:4px;">...</span>
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm admin-tab-btn" id="btnAdminTabProfiles" style="flex:1; justify-content:center;">
+          📋 Perfis na Nuvem
+        </button>
       </div>
 
-      <div class="admin-profiles-list" id="adminProfilesList">
-        <div style="padding:15px; text-align:center; color:#c8a878;">Carregando perfis da nuvem...</div>
+      <!-- ABA 1: PERFIS NA NUVEM -->
+      <div id="adminTabProfilesContent" style="display:flex; flex-direction:column; gap:11px;">
+        <!-- Importar perfil (Exclusivo Admin) -->
+        <label class="field" style="margin:0;">
+          <span>Importar / Abrir perfil</span>
+          <div class="room-input-group">
+            <input type="text" id="inpAdminRoom" placeholder="Nome do perfil ou código (ex: cd8)" autocomplete="off" spellcheck="false">
+            <button class="btn btn-gold btn-sm" id="btnAdminApplyRoom" type="button" title="Importar e abrir este perfil no app">Abrir</button>
+          </div>
+        </label>
+
+        <!-- Copiar counters de outro código para o perfil ativo (Exclusivo Admin) -->
+        <label class="field" style="margin:0;">
+          <span>Copiar counters de outro código para o perfil ativo:</span>
+          <div class="room-input-group">
+            <input type="text" id="inpAdminCopyFrom" placeholder="Código de 4 números ou perfil (ex: 7834)" autocomplete="off" spellcheck="false">
+            <button class="btn btn-gold btn-sm" id="btnAdminCopyFrom" type="button" title="Copiar counters deste código para o perfil atual">Copiar</button>
+          </div>
+        </label>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+          <span style="font-size:13px; font-weight:800; color:var(--gold);">Perfis salvos na nuvem</span>
+          <button class="btn btn-ghost btn-sm" id="btnAdminRefresh" type="button" title="Recarregar lista da nuvem">↺ Atualizar</button>
+        </div>
+
+        <div class="admin-profiles-list" id="adminProfilesList">
+          <div style="padding:15px; text-align:center; color:#c8a878;">Carregando perfis da nuvem...</div>
+        </div>
+      </div>
+
+      <!-- ABA 2: MEMBROS DAS GUILDAS -->
+      <div id="adminTabMembersContent" style="display:none; flex-direction:column; gap:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span style="font-size:13px; font-weight:800; color:var(--gold);">Participantes por Guilda</span>
+            <span style="font-size:11px; color:#c8a878; display:block;">Jogadores que inseriram o código de cada guilda</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="btnAdminRefreshMembers" type="button" title="Recarregar membros da nuvem">↺ Atualizar</button>
+        </div>
+
+        <div class="copy-filter-row" style="margin:0;">
+          <input type="text" id="inpAdminMemberSearch" placeholder="🔍 Filtrar membro por nick ou código #..." autocomplete="off" spellcheck="false">
+        </div>
+
+        <div class="admin-profiles-list" id="adminGuildMembersList" style="max-height:380px;">
+          <div style="padding:15px; text-align:center; color:#c8a878;">Carregando membros das guildas...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -3010,6 +3089,10 @@ function unlockGuild(gSlug, code, gName){
     localStorage.setItem(`siege_guild_unlocked_${slug}`, '1');
   } catch {}
   addKnownRoom(slug);
+  const nick = userNick();
+  if (nick){
+    registerUserInGuild(nick, slug, userCode(), isGuildLeader(slug));
+  }
   updateSwitcherState();
   updateGuildMenuUI();
   updateBrandRoomPill();
@@ -3017,6 +3100,10 @@ function unlockGuild(gSlug, code, gName){
 
 function lockGuild(){
   const gSlug = getActiveGuildSlug();
+  const nick = userNick();
+  if (nick && gSlug){
+    removeUserFromGuild(nick, gSlug);
+  }
   try {
     if (gSlug){
       localStorage.removeItem(`siege_guild_unlocked_${gSlug}`);
@@ -3712,7 +3799,10 @@ if (inpAdminCopy){
 }
 
 /* ---------- modal secreto do administrador ---------- */
-function openAdminModal(){
+let currentAdminTab = 'members';
+let targetedAdminGuildSlug = '';
+
+function openAdminModal(defaultTab = 'members', targetGuild = ''){
   window.__isLeader = true;
   try {
     localStorage.setItem('siege_is_leader', '1');
@@ -3724,13 +3814,57 @@ function openAdminModal(){
   modal.hidden = false;
   const inp = $('#inpAdminRoom');
   if (inp) inp.value = '';
-  loadAdminProfilesList();
+  targetedAdminGuildSlug = targetGuild || '';
+  switchAdminTab(defaultTab);
+  updateAdminTotalMembersBadge();
 }
 
 function closeAdminModal(){
   const modal = $('#adminModal');
   if (!modal) return;
   modal.hidden = true;
+  targetedAdminGuildSlug = '';
+}
+
+function switchAdminTab(tab){
+  currentAdminTab = tab;
+  const btnProfiles = $('#btnAdminTabProfiles');
+  const btnMembers = $('#btnAdminTabMembers');
+  const contentProfiles = $('#adminTabProfilesContent');
+  const contentMembers = $('#adminTabMembersContent');
+
+  if (btnProfiles) btnProfiles.classList.toggle('active', tab === 'profiles');
+  if (btnMembers) btnMembers.classList.toggle('active', tab === 'members');
+
+  if (contentProfiles) contentProfiles.style.display = (tab === 'profiles' ? 'flex' : 'none');
+  if (contentMembers) contentMembers.style.display = (tab === 'members' ? 'flex' : 'none');
+
+  if (tab === 'members'){
+    loadAdminGuildMembersList(targetedAdminGuildSlug);
+  } else {
+    targetedAdminGuildSlug = '';
+    loadAdminProfilesList();
+  }
+}
+
+const btnTabProfiles = $('#btnAdminTabProfiles');
+if (btnTabProfiles) btnTabProfiles.addEventListener('click', () => { targetedAdminGuildSlug = ''; switchAdminTab('profiles'); });
+
+const btnTabMembers = $('#btnAdminTabMembers');
+if (btnTabMembers) btnTabMembers.addEventListener('click', () => { targetedAdminGuildSlug = ''; switchAdminTab('members'); });
+
+const btnRefreshMembers = $('#btnAdminRefreshMembers');
+if (btnRefreshMembers) btnRefreshMembers.addEventListener('click', () => loadAdminGuildMembersList(targetedAdminGuildSlug));
+
+let memberSearchTimer;
+const inpMemberSearch = $('#inpAdminMemberSearch');
+if (inpMemberSearch){
+  inpMemberSearch.addEventListener('input', () => {
+    clearTimeout(memberSearchTimer);
+    memberSearchTimer = setTimeout(() => {
+      loadAdminGuildMembersList(targetedAdminGuildSlug);
+    }, 120);
+  });
 }
 
 const adminClose = $('#adminClose');
@@ -3776,6 +3910,39 @@ if (inpAdminRoom){
   });
 }
 
+/* Atalhos diretos para o painel de Membros e ADM */
+const btnTopAdmin = $('#btnTopAdmin');
+if (btnTopAdmin){
+  btnTopAdmin.addEventListener('click', () => {
+    openAdminModal('members');
+  });
+}
+
+const btnMenuOpenGuildMembers = $('#btnMenuOpenGuildMembers');
+if (btnMenuOpenGuildMembers){
+  btnMenuOpenGuildMembers.addEventListener('click', () => {
+    closeSync();
+    openAdminModal('members');
+  });
+}
+
+const btnMenuOpenAdminFull = $('#btnMenuOpenAdminFull');
+if (btnMenuOpenAdminFull){
+  btnMenuOpenAdminFull.addEventListener('click', () => {
+    closeSync();
+    openAdminModal('profiles');
+  });
+}
+
+const btnViewCurGM = $('#btnViewCurrentGuildMembers');
+if (btnViewCurGM){
+  btnViewCurGM.addEventListener('click', () => {
+    const slug = getActiveGuildSlug();
+    closeSync();
+    openAdminModal('members', slug);
+  });
+}
+
 async function setRoomCode(rName, newCode){
   const clean = (newCode || '').trim();
   if (!clean || !/^\d{4}$/.test(clean)) return;
@@ -3799,6 +3966,65 @@ async function setRoomCode(rName, newCode){
   } catch (err){
     console.warn('Erro ao atualizar código no banco:', err);
   }
+}
+
+/* ---------- controle de membros de guildas na nuvem ---------- */
+async function registerUserInGuild(nick, guildSlug, code, isLeader = false){
+  const cleanNick = (nick || '').trim();
+  const gSlug = (guildSlug || '').toLowerCase().trim();
+  if (!cleanNick || !gSlug) return;
+  const userKey = encodeURIComponent(cleanNick.toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_'));
+  const userCodeVal = code || userCode() || getOrGenerateRoomCode(cleanNick);
+  const data = {
+    nick: cleanNick,
+    code: userCodeVal,
+    isLeader: Boolean(isLeader),
+    joinedAt: Date.now(),
+    lastActive: Date.now()
+  };
+  try {
+    await fetch(`${dbUrl()}/rooms/_guild_members/${gSlug}/${userKey}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch (err){
+    console.warn('Erro ao registrar membro na guilda:', err);
+  }
+}
+
+async function removeUserFromGuild(nick, guildSlug){
+  const cleanNick = (nick || '').trim();
+  const gSlug = (guildSlug || '').toLowerCase().trim();
+  if (!cleanNick || !gSlug) return;
+  const userKey = encodeURIComponent(cleanNick.toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_'));
+  try {
+    await fetch(`${dbUrl()}/rooms/_guild_members/${gSlug}/${userKey}.json`, {
+      method: 'DELETE'
+    });
+  } catch (err){
+    console.warn('Erro ao remover membro da guilda:', err);
+  }
+}
+
+async function updateAdminTotalMembersBadge(){
+  const badge = $('#adminTotalMembersBadge');
+  if (!badge) return;
+  try {
+    const res = await fetch(`${dbUrl()}/rooms/_guild_members.json`);
+    if (res.ok){
+      const data = await res.json();
+      if (data && typeof data === 'object'){
+        let total = 0;
+        Object.values(data).forEach(g => {
+          if (g && typeof g === 'object') total += Object.keys(g).length;
+        });
+        badge.textContent = total;
+        return;
+      }
+    }
+  } catch {}
+  badge.textContent = '0';
 }
 
 async function loadAdminProfilesList(){
@@ -3892,6 +4118,7 @@ async function loadAdminProfilesList(){
         </div>
         <div class="admin-profile-actions">
           <button class="btn btn-gold btn-sm btn-admin-open" type="button" title="Abrir e editar este perfil">Abrir</button>
+          ${isGuildProf ? '<button class="btn btn-ghost btn-sm btn-admin-members" type="button" title="Ver membros que participam desta guilda">👥 Membros</button>' : ''}
           <button class="btn btn-ghost btn-sm btn-admin-ren" type="button" title="Renomear este perfil (sem duplicar)">✏️</button>
           <button class="btn btn-ghost btn-sm btn-admin-code" type="button" title="Alterar código de 4 números deste usuário">🔢</button>
           <button class="btn btn-ghost btn-sm btn-danger btn-admin-del" type="button" title="Excluir este perfil da nuvem">🗑</button>
@@ -3904,6 +4131,14 @@ async function loadAdminProfilesList(){
         toast(`✔ Perfil "${p.name}" aberto como ativo para edição!`);
       });
 
+      const btnMem = card.querySelector('.btn-admin-members');
+      if (btnMem){
+        btnMem.addEventListener('click', () => {
+          targetedAdminGuildSlug = slug;
+          switchAdminTab('members');
+        });
+      }
+
       card.querySelector('.btn-admin-ren').addEventListener('click', async () => {
         const newName = prompt(`Novo nome para o perfil "${p.name}":`, p.name);
         if (!newName || newName.trim() === p.name) return;
@@ -3912,7 +4147,6 @@ async function loadAdminProfilesList(){
       });
 
       card.querySelector('.btn-admin-code').addEventListener('click', async () => {
-        const isGuildProf = p.isGuild || p.name.toLowerCase() === 'cd8' || p.name.toLowerCase() === getActiveGuildSlug();
         const curCode = isGuildProf ? '' : (p.code || getOrGenerateRoomCode(p.name));
         const newCode = prompt(`Novo código de 4 números para "${p.name}":`, curCode);
         if (!newCode || newCode.trim() === curCode) return;
@@ -3965,6 +4199,189 @@ async function loadAdminProfilesList(){
     });
   } catch (err) {
     container.innerHTML = '<div style="padding:15px;text-align:center;color:#f0a5a5;">Erro ao listar perfis da nuvem.</div>';
+  }
+}
+
+async function loadAdminGuildMembersList(filterGuildSlug = ''){
+  const container = $('#adminGuildMembersList');
+  if (!container) return;
+  container.innerHTML = '<div style="padding:15px;text-align:center;color:#c8a878;">Carregando membros das guildas...</div>';
+
+  try {
+    const [guildsRes, membersRes, indexRes] = await Promise.all([
+      fetch(`${dbUrl()}/rooms/_guilds.json`),
+      fetch(`${dbUrl()}/rooms/_guild_members.json`),
+      fetch(`${dbUrl()}/rooms/_index.json`)
+    ]);
+
+    let guildsMap = {};
+    if (guildsRes.ok){
+      const gData = await guildsRes.json();
+      if (gData && typeof gData === 'object') guildsMap = gData;
+    }
+    // Sempre garante CD8
+    if (!guildsMap['cd8']){
+      guildsMap['cd8'] = { name: 'CD8', slug: 'cd8', isGuild: true };
+    }
+
+    let membersMap = {};
+    if (membersRes.ok){
+      const mData = await membersRes.json();
+      if (mData && typeof mData === 'object') membersMap = mData;
+    }
+
+    let indexMap = {};
+    if (indexRes.ok){
+      const iData = await indexRes.json();
+      if (iData && typeof iData === 'object') indexMap = iData;
+    }
+
+    Object.values(indexMap).forEach(item => {
+      if (item && item.isGuild && item.path && !guildsMap[item.path]){
+        guildsMap[item.path] = { name: item.name || item.path.toUpperCase(), slug: item.path, isGuild: true };
+      }
+    });
+
+    const searchInput = $('#inpAdminMemberSearch');
+    const q = norm(searchInput ? searchInput.value.trim() : '');
+
+    const guildSlugs = Object.keys(guildsMap);
+    if (!guildSlugs.length){
+      container.innerHTML = '<div style="padding:15px;text-align:center;color:#c8a878;">Nenhuma guilda cadastrada.</div>';
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="background:rgba(218,165,32,0.08); border:1px solid rgba(218,165,32,0.25); border-radius:6px; padding:8px 12px; font-size:12px; color:#dec08a; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span>👥 Total de participantes: <strong style="color:var(--gold);">${totalMembers}</strong></span>
+        <span style="font-size:11px; color:#a89070;">Toque no código # para copiar</span>
+      </div>
+    `;
+
+    guildSlugs.forEach(gSlug => {
+      const gInfo = guildsMap[gSlug] || { name: gSlug.toUpperCase(), slug: gSlug };
+      const gMembersRaw = membersMap[gSlug] || {};
+      let membersList = Object.values(gMembersRaw).filter(Boolean);
+
+      if (filterGuildSlug && filterGuildSlug.toLowerCase() !== gSlug.toLowerCase()) return;
+
+      if (q){
+        membersList = membersList.filter(m => {
+          const mNick = norm(m.nick || '');
+          const mCode = norm(m.code || '');
+          return mNick.includes(q) || mCode.includes(q);
+        });
+        if (!membersList.length && !norm(gInfo.name).includes(q)) return;
+      }
+
+      const gSection = document.createElement('div');
+      gSection.className = 'admin-guild-member-section';
+      gSection.style.cssText = 'background:rgba(20,12,7,.85); border:1px solid rgba(140,105,50,.45); border-radius:8px; padding:12px; margin-bottom:10px;';
+
+      const gHeader = document.createElement('div');
+      gHeader.style.cssText = 'display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(140,105,50,.3); padding-bottom:8px; margin-bottom:10px;';
+      gHeader.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">🏰</span>
+          <div>
+            <span style="font-weight:800; font-size:14px; color:var(--gold);">${esc(gInfo.name || gSlug.toUpperCase())}</span>
+            <span class="user-code-badge" style="font-size:10px; margin-left:6px;">${membersList.length} participante${membersList.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          ${filterGuildSlug ? '<button class="btn btn-ghost btn-sm btn-admin-clear-filter" type="button" style="font-size:11px;">Ver Todas</button>' : ''}
+          <button class="btn btn-ghost btn-sm btn-admin-open-g" type="button" style="font-size:11px;">Abrir Guilda</button>
+        </div>
+      `;
+
+      if (filterGuildSlug){
+        const btnClearF = gHeader.querySelector('.btn-admin-clear-filter');
+        if (btnClearF){
+          btnClearF.addEventListener('click', () => {
+            targetedAdminGuildSlug = '';
+            loadAdminGuildMembersList();
+          });
+        }
+      }
+
+      gHeader.querySelector('.btn-admin-open-g').addEventListener('click', async () => {
+        await switchRoom(gSlug, true);
+        closeAdminModal();
+        toast(`✔ Perfil da guilda "${gInfo.name}" aberto!`);
+      });
+
+      gSection.appendChild(gHeader);
+
+      if (!membersList.length){
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style.cssText = 'font-size:12px; color:#a89070; padding:6px 2px; font-style:italic;';
+        emptyDiv.textContent = q ? 'Nenhum membro encontrado com este termo.' : 'Nenhum membro conectado nesta guilda ainda.';
+        gSection.appendChild(emptyDiv);
+      } else {
+        const membersListEl = document.createElement('div');
+        membersListEl.style.cssText = 'display:flex; flex-direction:column; gap:6px;';
+
+        membersList.sort((a,b) => (b.lastActive || b.joinedAt || 0) - (a.lastActive || a.joinedAt || 0));
+
+        membersList.forEach(m => {
+          const mCard = document.createElement('div');
+          mCard.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(10,6,3,.65); border:1px solid rgba(140,105,50,.25); border-radius:6px; padding:7px 10px; font-size:12px;';
+
+          const joinedDate = (m.joinedAt || m.lastActive) ? new Date(m.joinedAt || m.lastActive).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'Recente';
+          const mCodeBadge = m.code ? `<span class="user-code-badge btn-copy-mcode" data-code="${esc(m.code)}" style="font-size:9.5px; padding:1px 5px; cursor:pointer;" title="Clique para copiar este código de 4 números">#${esc(m.code)}</span>` : '';
+
+          mCard.innerHTML = `
+            <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+              <span style="color:#5bb2ff; font-size:14px;">👤</span>
+              <div style="display:flex; flex-direction:column;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <strong style="color:#fff; font-size:12.5px;">${esc(m.nick || 'Jogador')}</strong>
+                  ${mCodeBadge}
+                  ${m.isLeader ? '<span style="font-size:9px; color:var(--gold); border:1px solid var(--gold); border-radius:4px; padding:0 4px; font-weight:700;">LÍDER</span>' : ''}
+                </div>
+                <span style="font-size:10px; color:#a89070;">Conectado: ${joinedDate}</span>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm btn-danger btn-admin-kick-user" type="button" title="Desconectar este membro desta guilda" style="font-size:10.5px; padding:2px 7px;">
+              Remover
+            </button>
+          `;
+
+          const codeEl = mCard.querySelector('.btn-copy-mcode');
+          if (codeEl){
+            codeEl.addEventListener('click', e => {
+              e.stopPropagation();
+              const c = codeEl.dataset.code;
+              if (c){
+                navigator.clipboard.writeText(c).catch(() => {});
+                toast(`✔ Código #${c} de "${m.nick}" copiado!`);
+              }
+            });
+          }
+
+          mCard.querySelector('.btn-admin-kick-user').addEventListener('click', async () => {
+            if (confirm(`Remover o membro "${m.nick}" da guilda "${gInfo.name}"?`)){
+              await removeUserFromGuild(m.nick, gSlug);
+              toast(`✔ Membro "${m.nick}" removido da guilda.`);
+              loadAdminGuildMembersList(filterGuildSlug);
+              updateAdminTotalMembersBadge();
+            }
+          });
+
+          membersListEl.appendChild(mCard);
+        });
+
+        gSection.appendChild(membersListEl);
+      }
+
+      container.appendChild(gSection);
+    });
+
+    const totalBadge = $('#adminTotalMembersBadge');
+    if (totalBadge) totalBadge.textContent = totalMembers;
+  } catch (err){
+    console.warn('Erro ao listar membros:', err);
+    container.innerHTML = '<div style="padding:15px;text-align:center;color:#f0a5a5;">Erro ao listar membros das guildas.</div>';
   }
 }
 
@@ -4378,6 +4795,10 @@ if (!userNick()){
     registerUserInRoom(userNick(), roomName());
     cloudLoad(true);
   }
+  const curGuild = getActiveGuildSlug();
+  if (curGuild && isGuildUnlocked(curGuild)){
+    registerUserInGuild(userNick(), curGuild, userCode(), isGuildLeader(curGuild));
+  }
   if (localStorage.getItem('siege_update_v15_seen') !== '1'){
     setTimeout(showUpdateNotesModal, 450);
   }
@@ -4401,7 +4822,7 @@ window.addEventListener('pagehide', () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ updated: ts, entries }),
-        keepalive: true 
+        keepalive: true
       });
       fetch(`${dbUrl()}/rooms/_index/${roomPath()}.json`, {
         method: 'PUT',
