@@ -4242,6 +4242,17 @@ async function loadAdminGuildMembersList(filterGuildSlug = ''){
       }
     });
 
+    Object.keys(membersMap).forEach(mSlug => {
+      if (mSlug && !guildsMap[mSlug]){
+        guildsMap[mSlug] = { name: mSlug.toUpperCase(), slug: mSlug, isGuild: true };
+      }
+    });
+
+    let totalMembers = 0;
+    Object.values(membersMap).forEach(g => {
+      if (g && typeof g === 'object') totalMembers += Object.keys(g).length;
+    });
+
     const searchInput = $('#inpAdminMemberSearch');
     const q = norm(searchInput ? searchInput.value.trim() : '');
 
@@ -4261,7 +4272,7 @@ async function loadAdminGuildMembersList(filterGuildSlug = ''){
     guildSlugs.forEach(gSlug => {
       const gInfo = guildsMap[gSlug] || { name: gSlug.toUpperCase(), slug: gSlug };
       const gMembersRaw = membersMap[gSlug] || {};
-      let membersList = Object.values(gMembersRaw).filter(Boolean);
+      let membersList = (gMembersRaw && typeof gMembersRaw === 'object') ? Object.values(gMembersRaw).filter(Boolean) : [];
 
       if (filterGuildSlug && filterGuildSlug.toLowerCase() !== gSlug.toLowerCase()) return;
 
@@ -4840,5 +4851,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c87e6f9f531f6a',t:'MTc4OTY1MjEyNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
