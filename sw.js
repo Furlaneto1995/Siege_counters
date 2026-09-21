@@ -2,7 +2,7 @@
    App shell em cache-first; retratos do CDN em stale-while-revalidate. */
 'use strict';
 
-const VERSION    = 'v22';
+const VERSION    = 'v25';
 const SHELL      = `siege-shell-${VERSION}`;
 const PORTRAITS  = `siege-portraits-${VERSION}`;
 const CDN        = 'https://raw.githubusercontent.com/swarfarm/swarfarm/';
