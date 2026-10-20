@@ -1044,10 +1044,6 @@ img {
 
   <!-- ============ RESULTADOS DA BUSCA ============ -->
   <section class="q-panel" id="qPanel" hidden>
-    <div class="list-head" id="qListHead" hidden>
-      <span class="lh-def">🛡️ DEFESA</span>
-      <span class="lh-atk">⚔️ ATAQUE</span>
-    </div>
     <div id="qResults" class="q-results"></div>
   </section>
 
@@ -1125,7 +1121,10 @@ img {
   <div class="modal">
     <div class="modal-head">
       <h3 id="modalTitle">Selecionar monstro</h3>
-      <button class="modal-close" id="modalClose" type="button">✕</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn btn-gold btn-sm" id="btnPickerDone" type="button" style="padding:4px 10px; font-size:11px;" hidden>Ver resultados</button>
+        <button class="modal-close" id="modalClose" type="button">✕</button>
+      </div>
     </div>
 
     <div class="modal-tools">
@@ -1916,6 +1915,18 @@ function renderSlots(){
 }
 
 /* ---------- modal de seleção ---------- */
+function updatePickerDoneBtn(){
+  const btn = $('#btnPickerDone');
+  if (!btn) return;
+  if (picking && picking.side === 'query'){
+    const count = query.filter(Boolean).length;
+    btn.hidden = count === 0;
+    btn.textContent = count > 0 ? `Ver resultados (${count})` : 'Concluir';
+  } else {
+    btn.hidden = true;
+  }
+}
+
 function openPicker(side, index){
   picking = { side, index };
   const label = side === 'query' ? '🔍 Defesa que você enfrentou'
@@ -1928,12 +1939,15 @@ function openPicker(side, index){
   natFilter = 'all';
   $$('.elem-btn').forEach(b => b.classList.toggle('active', b.dataset.el === 'all'));
   $$('.star-btn').forEach(b => b.classList.toggle('active', b.dataset.nat === 'all'));
+  updatePickerDoneBtn();
   renderGrid();
   setTimeout(() => $('#search').focus(), 40);
 }
 function closePicker(){
   $('#modal').hidden = true;
   picking = null;
+  const btn = $('#btnPickerDone');
+  if (btn) btn.hidden = true;
 }
 
 let gridRenderLimit = 90; // renderiza inicialmente os 90 primeiros para carregar instantaneamente
@@ -2015,6 +2029,37 @@ function renderGrid(showMore = false){
         query[picking.index] = m.id;
         saveQuery();
         renderQuery();
+
+        // Procura o próximo slot vazio da query (0, 1 ou 2)
+        let nextIndex = -1;
+        for (let i = 0; i < 3; i++){
+          if (!query[i]){
+            nextIndex = i;
+            break;
+          }
+        }
+
+        if (nextIndex !== -1){
+          // Ainda tem vaga: avança para o próximo slot e mantém o campo/teclado ativo
+          picking.index = nextIndex;
+          $('#modalTitle').textContent = `🔍 Defesa que você enfrentou — slot ${nextIndex + 1}`;
+          const inp = $('#search');
+          if (inp){
+            inp.value = '';
+            inp.focus();
+          }
+          elFilter = 'all';
+          natFilter = 'all';
+          $$('.elem-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.el === 'all'));
+          $$('.star-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.nat === 'all'));
+          updatePickerDoneBtn();
+          renderGrid();
+          setTimeout(() => {
+            const s = $('#search');
+            if (s) s.focus();
+          }, 30);
+          return;
+        }
       } else {
         draft[picking.side][picking.index] = m.id;
         renderSlots();
@@ -4961,9 +5006,7 @@ function renderQuery(){
 function renderQueryResults(picked){
   const host = $('#qResults');
   host.innerHTML = '';
-  const qh = $('#qListHead');
   if (!picked.length){
-    if (qh) qh.hidden = true;
     return;
   }
 
@@ -4977,14 +5020,12 @@ function renderQueryResults(picked){
     .sort((a, b) => b.found - a.found || b.e.rate - a.e.rate);
 
   if (!hits.length){
-    if (qh) qh.hidden = true;
     host.innerHTML = `<div class="q-empty">
       Nenhum counter registrado bate com essa defesa.<br>
       <b>＋ Novo counter</b> para adicionar o primeiro.</div>`;
     return;
   }
 
-  if (qh) qh.hidden = false;
   const h = document.createElement('p');
   h.className = 'q-head';
   h.textContent = `${hits.length} counter${hits.length > 1 ? 's' : ''} encontrado${hits.length > 1 ? 's' : ''}`;
@@ -5059,6 +5100,8 @@ $('#btnClearDraft').addEventListener('click', () => {
 });
 $('#btnSave').addEventListener('click', save);
 $('#modalClose').addEventListener('click', closePicker);
+const btnPD = $('#btnPickerDone');
+if (btnPD) btnPD.addEventListener('click', closePicker);
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closePicker(); });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
@@ -5330,5 +5373,5 @@ if (new URLSearchParams(location.search).has('novo')) openReg();
 console.log(`Siege Counters · ${MONS.length} monstros carregados`);
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3eb9cd45cb1f23b',t:'MTc5MDAyMDM3MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a4dab95eaefda40e',t:'MTc5MjUyNzYzNg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
